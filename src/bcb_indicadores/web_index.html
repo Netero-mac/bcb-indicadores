@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Indicadores BCB</title>
+<meta name="description" content="Selic, IPCA, dólar e outros indicadores econômicos do Banco Central do Brasil.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23030407'/%3E%3Cpath d='M10 46 L22 34 L31 40 L44 22 L54 28 L54 54 L10 54 Z' fill='%231558C9'/%3E%3Cpath d='M10 46 L22 34 L31 40 L44 22 L54 28' fill='none' stroke='%23D4FF24' stroke-width='4' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- modo -->
 <style>
   /* Paleta: Midnight Black #030407 · Electric Cobalt Blue #1558C9 · Acid Lime #D4FF24 */
@@ -13,226 +15,386 @@
     --cobalto: #1558C9;
     --lima: #D4FF24;
     --fundo: var(--preto);
-    --elevado: #0B0D12;
+    --elevado: #090B10;
+    --elevado-2: #0F1218;
     --texto: #EDEEE8;
     --suave: #8B8F98;
-    --fio: #23262D;
-    --grade: #15181E;
-    --linha: var(--lima);
-    --linha-2: var(--texto);
-    --area: var(--cobalto);
+    --apagado: #565B66;
+    --fio: #1E2129;
+    --fio-forte: #2E323C;
+    --cobalto-suave: rgb(21 88 201 / 18%);
+    --lima-suave: rgb(212 255 36 / 12%);
     --erro: #FF6B5A;
     --serifa: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
     --mono: "JetBrains Mono", "IBM Plex Mono", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+    --largura: 1240px;
   }
   * { box-sizing: border-box; }
-  html { background: var(--fundo); }
+  html { background: var(--fundo); scroll-behavior: smooth; }
   body {
     margin: 0; background: var(--fundo); color: var(--texto);
-    font: 14px/1.5 var(--mono);
-    -webkit-font-smoothing: antialiased;
+    font: 14px/1.5 var(--mono); -webkit-font-smoothing: antialiased;
   }
   ::selection { background: var(--lima); color: var(--preto); }
-  main { max-width: 1180px; margin: 0 auto; padding: 40px 16px 56px; }
   [hidden] { display: none !important; }
-
-  /* Cabeçalho */
-  header {
-    display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: flex-end; justify-content: space-between;
-    padding-bottom: 24px; border-bottom: 1px solid var(--texto);
-  }
-  .rotulo { font: 500 11px/1.4 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--suave); }
-  h1 { font: 400 clamp(40px, 7vw, 76px)/0.95 var(--serifa); letter-spacing: -0.02em; margin: 10px 0 0; }
-  h1 em { font-style: italic; color: var(--lima); }
-  .sub { color: var(--suave); font-size: 11px; margin-top: 14px; word-break: break-all; }
   .num { font-variant-numeric: tabular-nums; }
+  .conteudo { max-width: var(--largura); margin: 0 auto; padding: 0 16px; }
+  .rotulo { font: 500 10.5px/1.4 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--suave); }
+  :focus-visible { outline: 2px solid var(--lima); outline-offset: 3px; }
 
   button, .botao {
-    font: 500 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; cursor: pointer;
-    border: 1px solid var(--texto); background: transparent; color: var(--texto);
-    border-radius: 0; padding: 12px 18px; text-decoration: none; display: inline-block;
+    font: 500 11.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; cursor: pointer;
+    border: 1px solid var(--fio-forte); background: transparent; color: var(--texto);
+    border-radius: 0; padding: 11px 16px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+    transition: background .15s, color .15s, border-color .15s;
   }
-  button:hover, .botao:hover { background: var(--texto); color: var(--preto); }
-  :focus-visible { outline: 2px solid var(--lima); outline-offset: 3px; }
+  button:hover, .botao:hover { border-color: var(--texto); }
   button.primario { background: var(--lima); border-color: var(--lima); color: var(--preto); }
   button.primario:hover { background: var(--texto); border-color: var(--texto); }
   button:disabled { opacity: .55; cursor: progress; }
-
   input, select {
-    font: 500 13px/1 var(--mono); color: var(--texto); background: var(--fundo);
-    border: 1px solid var(--fio); border-radius: 0; padding: 9px 10px; min-width: 0;
+    font: 500 13px/1 var(--mono); color: var(--texto); background: var(--elevado);
+    border: 1px solid var(--fio-forte); border-radius: 0; padding: 10px 11px; min-width: 0;
   }
   input:hover, select:hover { border-color: var(--suave); }
   input:focus, select:focus { outline: none; border-color: var(--lima); }
-  label { display: flex; flex-direction: column; gap: 6px; font: 500 10px/1.2 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--suave); }
+  label { display: flex; flex-direction: column; gap: 7px; font: 500 10px/1.2 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--suave); }
 
-  /* Avisos */
-  .aviso { border-left: 3px solid var(--lima); padding: 12px 16px; margin: 20px 0 0; background: var(--elevado); }
+  /* ---------- barra do topo ---------- */
+  .topo {
+    position: sticky; top: 0; z-index: 10;
+    background: rgb(3 4 7 / 82%); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--fio);
+  }
+  .topo .conteudo { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 60px; }
+  .marca { display: flex; align-items: center; gap: 10px; font: 600 12px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--texto); text-decoration: none; }
+  .marca svg { width: 26px; height: 26px; }
+  .topo-dir { display: flex; align-items: center; gap: 16px; }
+  .status { display: flex; align-items: center; gap: 8px; color: var(--suave); font-size: 11.5px; }
+  .status::before { content: ""; width: 7px; height: 7px; background: var(--lima); box-shadow: 0 0 0 3px var(--lima-suave); }
+
+  /* ---------- abertura ---------- */
+  .abertura {
+    position: relative; border-bottom: 1px solid var(--fio);
+    background-image: radial-gradient(var(--fio) 1px, transparent 1px);
+    background-size: 22px 22px; background-position: -11px -11px;
+  }
+  .abertura::after { /* esmaece a grade de pontos para baixo */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, transparent 0%, var(--fundo) 92%);
+  }
+  .abertura .conteudo { position: relative; z-index: 1; padding-top: 56px; padding-bottom: 36px; }
+  h1 { font: 400 clamp(46px, 8.4vw, 104px)/.92 var(--serifa); letter-spacing: -0.025em; margin: 14px 0 0; }
+  h1 em { font-style: italic; color: var(--lima); }
+  .chamada { color: var(--suave); max-width: 560px; margin: 20px 0 0; font-size: 13px; }
+  .sub { color: var(--apagado); font-size: 11px; margin-top: 10px; word-break: break-all; }
+
+  .destaques {
+    display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 44px;
+    border-top: 1px solid var(--texto);
+  }
+  .destaque {
+    text-align: left; border: 0; border-right: 1px solid var(--fio); padding: 18px 20px 4px 0;
+    margin-right: 20px; background: transparent; text-transform: none; letter-spacing: 0; display: block; font: inherit;
+  }
+  .destaque:last-child { border-right: 0; margin-right: 0; }
+  .destaque:hover { background: transparent; border-color: var(--fio); }
+  .destaque:hover .d-num { color: var(--lima); }
+  .d-num { display: block; font: 500 clamp(28px, 3.6vw, 44px)/1 var(--mono); letter-spacing: -0.04em; margin: 12px 0 8px; transition: color .15s; }
+  .d-num small { font-size: 13px; letter-spacing: 0; color: var(--suave); margin-left: 6px; }
+  .d-var { font-size: 11.5px; color: var(--suave); }
+
+  /* ---------- abas ---------- */
+  .abas-faixa { position: sticky; top: 60px; z-index: 9; background: var(--fundo); border-bottom: 1px solid var(--fio); }
+  .abas { display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; }
+  .abas::-webkit-scrollbar { display: none; }
+  .aba {
+    flex: 0 0 auto; border: 0; border-right: 1px solid var(--fio); padding: 18px 26px 16px 0; margin-right: 26px;
+    text-transform: none; letter-spacing: 0; color: var(--apagado); font: inherit; display: flex; align-items: baseline; gap: 10px;
+    position: relative; background: transparent;
+  }
+  .aba:last-child { border-right: 0; }
+  .aba:hover { background: transparent; color: var(--texto); border-color: var(--fio); }
+  .aba .n { font: 500 11px/1 var(--mono); letter-spacing: .1em; }
+  .aba .t { font: 400 26px/1 var(--serifa); }
+  .aba .q { font: 500 10px/1 var(--mono); color: var(--apagado); border: 1px solid var(--fio-forte); padding: 3px 5px; align-self: center; }
+  .aba[aria-selected="true"] { color: var(--texto); }
+  .aba[aria-selected="true"] .n { color: var(--lima); }
+  .aba[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 26px; bottom: -1px; height: 3px; background: var(--lima); }
+  .aba:last-child[aria-selected="true"]::after { right: 0; }
+
+  /* ---------- seção da aba ---------- */
+  .secao { padding: 34px 0 72px; }
+  .secao-topo { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 32px; margin-bottom: 22px; }
+  .secao-topo h2 { font: 400 clamp(34px, 4.4vw, 52px)/1 var(--serifa); margin: 8px 0 0; letter-spacing: -0.015em; }
+  .secao-topo p { color: var(--suave); max-width: 520px; margin: 0; font-size: 13px; }
+
+  .aviso { border-left: 3px solid var(--lima); padding: 12px 16px; margin: 24px 0 0; background: var(--elevado); }
   .aviso.erro { border-left-color: var(--erro); color: var(--erro); }
   .aviso ul { margin: 6px 0 0; padding-left: 20px; }
 
-  /* Grupos de cartões: fios finos entre as colunas, sem caixas arredondadas */
-  #grupos { margin: 0 0 40px; }
-  .grupo > .rotulo { padding: 22px 0 10px; }
-  .cartoes {
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    gap: 1px; background: var(--fio); border-top: 1px solid var(--fio); border-bottom: 1px solid var(--fio);
-  }
+  /* ---------- cartões ---------- */
+  .cartoes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
   .cartao {
-    text-align: left; background: var(--fundo); border: 0; padding: 18px 18px 20px;
-    text-transform: none; letter-spacing: 0; font: inherit; width: 100%; color: var(--texto);
-    transition: background .15s;
+    position: relative; text-align: left; background: var(--elevado); border: 1px solid var(--fio);
+    padding: 18px 18px 0; text-transform: none; letter-spacing: 0; font: inherit; color: var(--texto);
+    display: flex; flex-direction: column; overflow: hidden; min-height: 222px;
   }
-  .cartao:hover { background: var(--elevado); color: var(--texto); }
-  .cartao[aria-pressed="true"] { background: var(--cobalto); }
-  .cartao:disabled { cursor: default; opacity: .5; }
-  .cartao .nome { font: 400 20px/1.15 var(--serifa); display: block; }
-  .cartao .unid { display: block; font: 500 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--suave); margin-top: 6px; }
-  .cartao[aria-pressed="true"] .unid,
-  .cartao[aria-pressed="true"] .linha { color: rgb(255 255 255 / 72%); }
-  .cartao .valor { font: 500 30px/1 var(--mono); letter-spacing: -0.03em; margin: 18px 0 12px; }
-  .cartao .linha { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--suave); padding-top: 5px; }
-  .cartao .linha b { font-weight: 500; color: var(--texto); text-align: right; }
-  .cartao[aria-pressed="true"] .linha b { color: #fff; }
+  .cartao:hover { border-color: var(--fio-forte); background: var(--elevado-2); }
+  .cartao[aria-pressed="true"] { background: var(--cobalto); border-color: var(--cobalto); }
+  .cartao[aria-pressed="true"]::before { content: ""; position: absolute; left: 0; top: 0; width: 100%; height: 3px; background: var(--lima); }
+  .cartao:disabled { cursor: default; opacity: .45; }
+  .c-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .c-nome { font: 400 21px/1.1 var(--serifa); }
+  .c-tag { font: 500 9.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--suave); border: 1px solid var(--fio-forte); padding: 4px 6px; white-space: nowrap; }
+  .cartao[aria-pressed="true"] .c-tag { color: #fff; border-color: rgb(255 255 255 / 35%); }
+  .c-unid { font: 500 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--suave); margin-top: 7px; }
+  .c-valor { font: 500 34px/1 var(--mono); letter-spacing: -0.04em; margin: 20px 0 8px; }
+  .c-var { font-size: 12px; color: var(--suave); }
+  .c-var b { font-weight: 500; color: var(--texto); }
+  .cartao[aria-pressed="true"] .c-unid, .cartao[aria-pressed="true"] .c-var { color: rgb(255 255 255 / 75%); }
+  .cartao[aria-pressed="true"] .c-var b { color: #fff; }
+  .c-mini { margin: auto -18px 0; padding-top: 14px; height: 62px; }
+  .c-mini svg { width: 100%; height: 48px; display: block; }
 
-  /* Painéis */
-  .painel { margin-bottom: 56px; }
-  .painel-topo {
-    display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: baseline;
-    border-bottom: 1px solid var(--fio); padding-bottom: 12px; margin-bottom: 14px;
-  }
-  .painel h2 { font: 400 30px/1.1 var(--serifa); margin: 0; }
-  .painel h2 small { font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--suave); margin-left: 10px; }
-  .descricao { color: var(--suave); font-size: 12px; max-width: 760px; margin: 0 0 14px; }
-  .descricao:empty { display: none; }
+  /* ---------- detalhe ---------- */
+  .detalhe { margin-top: 40px; border: 1px solid var(--fio); background: var(--elevado); }
+  .det-topo { display: grid; grid-template-columns: 1fr auto; gap: 20px 40px; padding: 26px 26px 22px; border-bottom: 1px solid var(--fio); }
+  .det-topo h3 { font: 400 clamp(30px, 3.6vw, 44px)/1.05 var(--serifa); margin: 8px 0 10px; }
+  .det-topo .descricao { color: var(--suave); font-size: 12.5px; max-width: 620px; margin: 0; }
+  .det-valor { text-align: right; }
+  .det-valor .v { font: 500 clamp(40px, 5vw, 64px)/1 var(--mono); letter-spacing: -0.05em; color: var(--lima); }
+  .det-valor .u { font-size: 14px; color: var(--suave); margin-left: 8px; }
+  .det-valor .s { color: var(--suave); font-size: 12px; margin-top: 10px; }
 
-  .controles { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: flex-end; margin-bottom: 16px; }
+  .controles { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end; padding: 18px 26px; border-bottom: 1px solid var(--fio); }
   .periodos { display: flex; }
-  .periodos button { padding: 9px 12px; border-color: var(--fio); margin-left: -1px; }
+  .periodos button { padding: 10px 12px; margin-left: -1px; }
   .periodos button:first-child { margin-left: 0; }
   .periodos button[aria-pressed="true"] { background: var(--lima); border-color: var(--lima); color: var(--preto); position: relative; }
   .datas { display: flex; gap: 8px; }
-  .legenda { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 12px; color: var(--suave); margin-bottom: 8px; }
-  .legenda i { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; }
-  .faixa { color: var(--suave); font-size: 12px; margin-bottom: 12px; }
+
+  .grafico-area { padding: 18px 26px 8px; }
+  .legenda { display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 11.5px; color: var(--suave); min-height: 18px; margin-bottom: 6px; }
+  .legenda i { display: inline-block; width: 16px; height: 3px; vertical-align: middle; margin-right: 7px; }
   .grafico { position: relative; }
-  svg { display: block; width: 100%; height: 360px; touch-action: pan-y; }
-  svg text { fill: var(--suave); font: 11px var(--mono); }
+  .grafico svg { display: block; width: 100%; height: 380px; touch-action: pan-y; }
+  .grafico svg text { fill: var(--apagado); font: 10.5px var(--mono); }
   .dica {
     position: absolute; pointer-events: none; background: var(--lima); color: var(--preto);
-    padding: 6px 10px; font: 500 12px/1.4 var(--mono); white-space: pre; display: none;
+    padding: 7px 10px; font: 500 12px/1.45 var(--mono); white-space: pre; display: none; z-index: 2;
   }
 
-  /* Tabelas */
+  .estatisticas { display: grid; grid-template-columns: repeat(6, 1fr); border-top: 1px solid var(--fio); }
+  .estatisticas div { padding: 16px 20px 18px 26px; border-right: 1px solid var(--fio); }
+  .estatisticas div:last-child { border-right: 0; }
+  .estatisticas b { display: block; font: 500 19px/1.1 var(--mono); letter-spacing: -0.02em; margin-top: 8px; }
+  .estatisticas span.q { display: block; font-size: 11px; color: var(--apagado); margin-top: 5px; }
+
+  .tabela-area { border-top: 1px solid var(--fio); padding: 22px 26px 26px; }
+  .tabela-topo { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .tabela-topo h4 { font: 400 22px/1 var(--serifa); margin: 0; }
+  .tabela-topo h4 small { font: 500 10.5px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--suave); margin-left: 10px; }
+  .acoes { display: flex; flex-wrap: wrap; gap: 8px; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { padding: 9px 0; border-bottom: 1px solid var(--grade); }
+  th, td { padding: 10px 0; border-bottom: 1px solid var(--fio); }
   th { text-align: left; color: var(--suave); font-weight: 500; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
   td.num, th.num { text-align: right; padding-left: 12px; }
   #tabela tr:first-child td { color: var(--lima); }
-  .acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+  .barra { display: inline-block; height: 6px; background: var(--cobalto); vertical-align: middle; margin-left: 10px; }
 
-  /* Simulador */
-  .sim-form { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
-  .sim-destaque td { color: var(--lima); }
-  .sim-destaque td:first-child { color: var(--texto); }
-  #sim-notas { margin-top: 14px; }
+  /* ---------- simulador ---------- */
+  .sim { display: grid; grid-template-columns: 340px 1fr; border: 1px solid var(--fio); background: var(--elevado); }
+  .sim-form { display: grid; gap: 16px; padding: 26px; border-right: 1px solid var(--fio); align-content: start; }
+  .sim-res { padding: 26px; }
+  .sim-principal .rotulo { margin-bottom: 10px; }
+  .sim-principal .v { font: 500 clamp(40px, 5.4vw, 68px)/1 var(--mono); letter-spacing: -0.05em; color: var(--lima); }
+  .sim-principal .s { color: var(--suave); margin-top: 10px; font-size: 13px; }
+  .sim-barras { margin: 30px 0 8px; display: grid; gap: 16px; }
+  .sim-linha { display: grid; grid-template-columns: 170px 1fr 120px; gap: 14px; align-items: center; font-size: 13px; }
+  .sim-linha .trilho { height: 10px; background: var(--fio); position: relative; }
+  .sim-linha .preench { position: absolute; inset: 0 auto 0 0; background: var(--cobalto); }
+  .sim-linha.lider .preench { background: var(--lima); }
+  .sim-linha .val { text-align: right; }
+  .sim-tabela { margin-top: 26px; }
+  .sim-tabela tr.lider td { color: var(--lima); }
+  .sim-tabela tr.lider td:first-child { color: var(--texto); }
+  .notas { color: var(--suave); font-size: 12px; margin: 16px 0 0; max-width: 760px; }
 
-  footer {
-    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px;
-    border-top: 1px solid var(--texto); padding-top: 14px; color: var(--suave);
-    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
-  }
-  footer a { color: var(--texto); text-underline-offset: 3px; }
+  footer { border-top: 1px solid var(--fio); }
+  footer .conteudo { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-top: 18px; padding-bottom: 28px; color: var(--apagado); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; }
+  footer a { color: var(--suave); text-underline-offset: 3px; }
   footer a:hover { color: var(--lima); }
 
-  @media (max-width: 960px) {
+  @media (max-width: 1020px) {
     .cartoes { grid-template-columns: repeat(2, 1fr); }
-    .sim-form { grid-template-columns: repeat(2, 1fr); }
+    .estatisticas { grid-template-columns: repeat(3, 1fr); }
+    .estatisticas div:nth-child(3n) { border-right: 0; }
+    .estatisticas div:nth-child(-n+3) { border-bottom: 1px solid var(--fio); }
+    .sim { grid-template-columns: 1fr; }
+    .sim-form { border-right: 0; border-bottom: 1px solid var(--fio); grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 760px) {
+    .destaques { grid-template-columns: repeat(2, 1fr); }
+    .destaque:nth-child(2) { border-right: 0; margin-right: 0; }
+    .destaque:nth-child(-n+2) { border-bottom: 1px solid var(--fio); padding-bottom: 14px; }
+    .det-topo { grid-template-columns: 1fr; }
+    .det-valor { text-align: left; }
+    .status span { display: none; }
   }
   @media (max-width: 600px) {
-    main { padding-top: 28px; }
-    header { align-items: flex-start; flex-direction: column; }
-    .cartoes, .sim-form { grid-template-columns: 1fr; }
-    .painel h2 small { display: block; margin: 6px 0 0; }
+    .cartoes { grid-template-columns: 1fr; }
+    .cartao { min-height: 0; }
+    .aba { padding-right: 18px; margin-right: 18px; }
+    .aba .t { font-size: 21px; }
+    .aba .q { display: none; }
+    .det-topo, .controles, .grafico-area, .tabela-area, .sim-form, .sim-res { padding-left: 16px; padding-right: 16px; }
+    .estatisticas { grid-template-columns: repeat(2, 1fr); }
+    .estatisticas div { padding-left: 16px; border-bottom: 1px solid var(--fio); }
+    .estatisticas div:nth-child(3n) { border-right: 1px solid var(--fio); }
+    .estatisticas div:nth-child(2n) { border-right: 0; }
     .datas { width: 100%; }
     .datas label { flex: 1; }
-    svg { height: 280px; }
+    .grafico svg { height: 280px; }
+    .sim-form { grid-template-columns: 1fr; }
+    .sim-linha { grid-template-columns: 1fr auto; }
+    .sim-linha .trilho { grid-column: 1 / -1; grid-row: 2; }
+    .topo .botao-texto { display: none; }
   }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <div>
-      <div class="rotulo">Banco Central do Brasil · Séries temporais SGS</div>
-      <h1>Indicadores <em>econômicos</em></h1>
-      <div class="sub" id="banco"></div>
+<div class="topo">
+  <div class="conteudo">
+    <a class="marca" href="#">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="12" fill="#030407" stroke="#2E323C"/><path d="M10 46 L22 34 L31 40 L44 22 L54 28 L54 54 L10 54 Z" fill="#1558C9"/><path d="M10 46 L22 34 L31 40 L44 22 L54 28" fill="none" stroke="#D4FF24" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      Indicadores BCB
+    </a>
+    <div class="topo-dir">
+      <div class="status" id="status"><span id="status-texto">Carregando…</span></div>
+      <button class="primario" id="btn-coletar" type="button">↻ <span class="botao-texto">Atualizar dados</span></button>
     </div>
-    <button class="primario" id="btn-coletar" type="button">Atualizar dados</button>
-  </header>
+  </div>
+</div>
 
+<header class="abertura">
+  <div class="conteudo">
+    <div class="rotulo">Banco Central do Brasil · Séries temporais SGS</div>
+    <h1>Indicadores<br><em>econômicos</em></h1>
+    <p class="chamada">Juros, inflação, câmbio e atividade, direto da fonte oficial. Escolha uma área abaixo para ver cada indicador em detalhe.</p>
+    <div class="sub" id="banco"></div>
+    <div class="destaques" id="destaques"></div>
+  </div>
+</header>
+
+<nav class="abas-faixa" aria-label="Áreas">
+  <div class="conteudo">
+    <div class="abas" id="abas" role="tablist"></div>
+  </div>
+</nav>
+
+<main class="conteudo">
   <div id="avisos" aria-live="polite"></div>
-  <div id="grupos"></div>
 
-  <section class="painel" id="painel-grafico" hidden>
-    <div class="painel-topo">
-      <h2 id="titulo-grafico"></h2>
-    </div>
-    <p class="descricao" id="descricao"></p>
-    <div class="controles">
-      <div class="periodos" id="periodos" role="group" aria-label="Período do gráfico">
-        <button type="button" data-anos="1">1 ano</button>
-        <button type="button" data-anos="5">5 anos</button>
-        <button type="button" data-anos="10">10 anos</button>
-        <button type="button" data-anos="0">Tudo</button>
+  <!-- Aba de um grupo de indicadores -->
+  <section class="secao" id="secao-grupo" role="tabpanel" hidden>
+    <div class="secao-topo">
+      <div>
+        <div class="rotulo" id="grupo-rotulo"></div>
+        <h2 id="grupo-nome"></h2>
       </div>
-      <div class="datas">
-        <label>De<input type="date" id="de"></label>
-        <label>Até<input type="date" id="ate"></label>
+      <p id="grupo-descricao"></p>
+    </div>
+    <div class="cartoes" id="cartoes"></div>
+
+    <article class="detalhe" id="detalhe" hidden>
+      <div class="det-topo">
+        <div>
+          <div class="rotulo" id="det-rotulo"></div>
+          <h3 id="det-nome"></h3>
+          <p class="descricao" id="descricao"></p>
+        </div>
+        <div class="det-valor">
+          <div><span class="v num" id="det-valor"></span><span class="u" id="det-unid"></span></div>
+          <div class="s num" id="det-sub"></div>
+        </div>
       </div>
-      <label>Comparar com<select id="comparar"><option value="">Nenhuma</option></select></label>
-    </div>
-    <div class="legenda" id="legenda"></div>
-    <div class="faixa num" id="faixa"></div>
-    <div class="grafico" id="grafico">
-      <svg id="svg" role="img"></svg>
-      <div class="dica num" id="dica"></div>
-    </div>
+      <div class="controles">
+        <div class="periodos" id="periodos" role="group" aria-label="Período do gráfico">
+          <button type="button" data-anos="1">1A</button>
+          <button type="button" data-anos="5">5A</button>
+          <button type="button" data-anos="10">10A</button>
+          <button type="button" data-anos="0">Tudo</button>
+        </div>
+        <div class="datas">
+          <label>De<input type="date" id="de"></label>
+          <label>Até<input type="date" id="ate"></label>
+        </div>
+        <label>Comparar com<select id="comparar"><option value="">Nenhuma</option></select></label>
+      </div>
+      <div class="grafico-area">
+        <div class="legenda" id="legenda"></div>
+        <div class="grafico">
+          <svg id="svg" role="img"></svg>
+          <div class="dica num" id="dica"></div>
+        </div>
+      </div>
+      <div class="estatisticas num" id="estatisticas"></div>
+      <div class="tabela-area">
+        <div class="tabela-topo">
+          <h4>Observações<small id="contagem"></small></h4>
+          <div class="acoes">
+            <button type="button" id="btn-csv-periodo">↓ CSV do período</button>
+            <a class="botao" id="btn-csv" href="#" download>↓ CSV completo</a>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Data</th><th class="num" id="th-valor">Valor</th></tr></thead>
+          <tbody id="tabela"></tbody>
+        </table>
+      </div>
+    </article>
   </section>
 
-  <section class="painel" id="painel-tabela" hidden>
-    <div class="painel-topo">
-      <h2>Observações<small id="contagem"></small></h2>
-      <div class="acoes">
-        <button type="button" id="btn-csv-periodo">CSV do período</button>
-        <a class="botao" id="btn-csv" href="#" download>CSV completo</a>
+  <!-- Aba do simulador -->
+  <section class="secao" id="secao-simulador" role="tabpanel" hidden>
+    <div class="secao-topo">
+      <div>
+        <div class="rotulo">Ferramenta</div>
+        <h2>Simulador de rendimento</h2>
+      </div>
+      <p>Quanto um valor aplicado teria rendido entre duas datas, comparado com a poupança e com a inflação do período.</p>
+    </div>
+    <div class="sim">
+      <form class="sim-form" id="sim" onsubmit="return false">
+        <label>Valor aplicado (R$)<input id="sim-valor" inputmode="decimal" value="10.000,00" autocomplete="off"></label>
+        <label>% do CDI<input id="sim-pct" type="number" min="1" max="300" step="1" value="100"></label>
+        <label>Aplicado em<input type="date" id="sim-de"></label>
+        <label>Resgatado em<input type="date" id="sim-ate"></label>
+      </form>
+      <div class="sim-res">
+        <div class="sim-principal">
+          <div class="rotulo" id="sim-rotulo">Valor final</div>
+          <div class="v num" id="sim-final">—</div>
+          <div class="s num" id="sim-sub"></div>
+        </div>
+        <div class="sim-barras" id="sim-barras"></div>
+        <table class="sim-tabela">
+          <thead><tr><th>Aplicação</th><th class="num">Valor final</th><th class="num">Rendimento</th><th class="num">Ganho real</th></tr></thead>
+          <tbody id="sim-tabela"></tbody>
+        </table>
+        <p class="notas" id="sim-notas"></p>
       </div>
     </div>
-    <table>
-      <thead><tr><th>Data</th><th class="num" id="th-valor">Valor</th></tr></thead>
-      <tbody id="tabela"></tbody>
-    </table>
   </section>
-
-  <section class="painel" id="painel-simulador" hidden>
-    <div class="painel-topo">
-      <h2>Simulador<small>quanto rendeu uma aplicação</small></h2>
-    </div>
-    <form class="sim-form" id="sim" onsubmit="return false">
-      <label>Valor aplicado (R$)<input id="sim-valor" inputmode="decimal" value="10.000,00" autocomplete="off"></label>
-      <label>% do CDI<input id="sim-pct" type="number" min="1" max="300" step="1" value="100"></label>
-      <label>Aplicado em<input type="date" id="sim-de"></label>
-      <label>Resgatado em<input type="date" id="sim-ate"></label>
-    </form>
-    <table>
-      <thead><tr><th>Aplicação</th><th class="num">Valor final</th><th class="num">Rendimento</th><th class="num">Ganho real</th></tr></thead>
-      <tbody id="sim-tabela"></tbody>
-    </table>
-    <p class="descricao" id="sim-notas"></p>
-  </section>
-
-  <footer><span>Fonte: Banco Central do Brasil</span><a href="https://dadosabertos.bcb.gov.br/" target="_blank" rel="noopener">dadosabertos.bcb.gov.br</a></footer>
 </main>
+
+<footer>
+  <div class="conteudo">
+    <span>Fonte: Banco Central do Brasil · SGS</span>
+    <a href="https://dadosabertos.bcb.gov.br/" target="_blank" rel="noopener">dadosabertos.bcb.gov.br</a>
+  </div>
+</footer>
 
 <script>
 "use strict";
@@ -242,11 +404,18 @@ const urlSerie = (a) => (ESTATICO ? `dados/${a}.json` : `/api/series/${a}`);
 const urlCsv = (a) => (ESTATICO ? `dados/${a}.csv` : `/api/series/${a}.csv`);
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const DIA = 86400000;
+const DESTAQUES = ["selic", "ipca12m", "juroreal", "dolar"];
+const SIMULADOR = { id: "simulador", nome: "Simulador" };
 
 const $ = (id) => document.getElementById(id);
-const estado = { resumo: null, por: {}, apelido: null, comparar: "", anos: 5, de: null, ate: null, cache: {} };
-try { estado.apelido = localStorage.getItem("serie"); } catch {}
-try { const a = localStorage.getItem("anos"); if (a !== null && !Number.isNaN(Number(a))) estado.anos = Number(a); } catch {}
+const estado = {
+  resumo: null, por: {}, aba: null, apelido: null, escolhaPorAba: {},
+  comparar: "", anos: 5, de: null, ate: null, cache: {},
+};
+const guardado = (chave) => { try { return localStorage.getItem(chave); } catch { return null; } };
+const guardar = (chave, valor) => { try { localStorage.setItem(chave, valor); } catch {} };
+try { estado.escolhaPorAba = JSON.parse(guardado("escolhas") || "{}"); } catch {}
+{ const a = guardado("anos"); if (a !== null && !Number.isNaN(Number(a))) estado.anos = Number(a); }
 
 // ---------- utilidades ----------
 const formatar = (v, casas) => v.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
@@ -304,87 +473,162 @@ function vigente(pontos, ms) {
   while (lo <= hi) { const m = (lo + hi) >> 1; if (pontos[m][0] <= ms) { achado = pontos[m]; lo = m + 1; } else hi = m - 1; }
   return achado;
 }
+const seta = (sinal) => (sinal > 0 ? "▲" : sinal < 0 ? "▼" : "■");
 
-// ---------- resumo e cartões ----------
+// ---------- carregamento ----------
 async function carregarResumo() {
   estado.resumo = await api(URL_RESUMO);
   estado.por = Object.fromEntries(estado.resumo.series.map((s) => [s.apelido, s]));
   const gerado = new Date(estado.resumo.gerado_em);
-  $("banco").textContent = ESTATICO
-    ? `Atualizado em ${gerado.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
-    : `Banco: ${estado.resumo.banco}`;
-
-  const comDados = estado.resumo.series.filter((s) => s.ultima);
-  if (!comDados.length) {
+  const quando = gerado.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  $("status-texto").textContent = `Atualizado em ${quando}`;
+  $("banco").textContent = ESTATICO ? "" : `Banco local: ${estado.resumo.banco}`;
+  if (!estado.resumo.series.some((s) => s.ultima)) {
     aviso(ESTATICO ? "Ainda não há dados publicados."
       : "O banco ainda está vazio. Clique em <b>Atualizar dados</b> para baixar o histórico desde 2000 (leva alguns minutos).");
-  }
-  if (!estado.por[estado.apelido]?.ultima) estado.apelido = comDados[0]?.apelido ?? null;
-  if (estado.comparar && !estado.por[estado.comparar]?.ultima) estado.comparar = "";
-
-  const grupos = $("grupos");
-  grupos.replaceChildren();
-  let atual = null, grade = null;
-  for (const s of estado.resumo.series) {
-    if (s.grupo !== atual) {
-      atual = s.grupo;
-      const bloco = el("div", { class: "grupo" });
-      grade = el("div", { class: "cartoes" });
-      bloco.append(el("div", { class: "rotulo" }, s.grupo), grade);
-      grupos.append(bloco);
-    }
-    grade.append(cartao(s));
   }
 
   const select = $("comparar");
   select.replaceChildren(el("option", { value: "" }, "Nenhuma"));
-  for (const s of comDados) select.append(el("option", { value: s.apelido }, s.nome));
+  for (const g of estado.resumo.grupos) {
+    const grupo = el("optgroup", { label: g.nome });
+    for (const a of g.series) if (estado.por[a]?.ultima) grupo.append(el("option", { value: a }, estado.por[a].nome));
+    select.append(grupo);
+  }
+  if (estado.comparar && !estado.por[estado.comparar]?.ultima) estado.comparar = "";
   select.value = estado.comparar;
 
-  $("painel-grafico").hidden = $("painel-tabela").hidden = !estado.apelido;
-  $("painel-simulador").hidden = !estado.por.cdi?.ultima;
-  if (estado.apelido) await selecionar(estado.apelido);
-  if (estado.por.cdi?.ultima) await prepararSimulador();
+  desenharDestaques();
+  desenharAbas();
+  const pedida = location.hash.slice(1);
+  const abas = [...estado.resumo.grupos.map((g) => g.id), SIMULADOR.id];
+  await mostrarAba(abas.includes(pedida) ? pedida : abas.includes(guardado("aba")) ? guardado("aba") : abas[0]);
+}
+
+function desenharDestaques() {
+  const caixa = $("destaques");
+  caixa.replaceChildren();
+  for (const a of DESTAQUES) {
+    const s = estado.por[a];
+    if (!s?.ultima) continue;
+    const b = el("button", { type: "button", class: "destaque" });
+    b.innerHTML = `<span class="rotulo">${escapar(s.nome)}</span>
+      <span class="d-num num">${escapar(s.ultima.valor_br)}<small>${escapar(s.unidade)}</small></span>
+      <span class="d-var num">${s.variacao_12m ? `${seta(s.sinal_variacao)} ${escapar(s.variacao_12m)} em 12m` : escapar(s.ultima.data_br)}</span>`;
+    b.addEventListener("click", async () => {
+      estado.escolhaPorAba[s.grupo_id] = a;
+      await mostrarAba(s.grupo_id);
+      $("detalhe").scrollIntoView({ block: "start" });
+    });
+    caixa.append(b);
+  }
+}
+
+function desenharAbas() {
+  const abas = $("abas");
+  abas.replaceChildren();
+  const itens = [...estado.resumo.grupos, SIMULADOR];
+  itens.forEach((g, i) => {
+    const b = el("button", { type: "button", class: "aba", role: "tab", "data-aba": g.id, "aria-selected": "false" });
+    const qtd = g.series ? `<span class="q">${g.series.length}</span>` : "";
+    b.innerHTML = `<span class="n">${String(i + 1).padStart(2, "0")}</span><span class="t">${escapar(g.nome)}</span>${qtd}`;
+    b.addEventListener("click", () => mostrarAba(g.id));
+    abas.append(b);
+  });
+}
+
+async function mostrarAba(id) {
+  estado.aba = id;
+  guardar("aba", id);
+  if (location.hash.slice(1) !== id) history.replaceState(null, "", `#${id}`);
+  for (const b of $("abas").children) {
+    const ativa = b.dataset.aba === id;
+    b.setAttribute("aria-selected", String(ativa));
+    if (ativa && b.scrollIntoView) b.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+
+  const simulador = id === SIMULADOR.id;
+  $("secao-simulador").hidden = !simulador;
+  $("secao-grupo").hidden = simulador;
+  if (simulador) {
+    if (estado.por.cdi?.ultima) await prepararSimulador();
+    else $("sim-notas").textContent = "O simulador precisa da série do CDI. Atualize os dados primeiro.";
+    return;
+  }
+
+  const indice = estado.resumo.grupos.findIndex((g) => g.id === id);
+  const grupo = estado.resumo.grupos[indice];
+  $("grupo-rotulo").textContent = `${String(indice + 1).padStart(2, "0")} · ${grupo.series.length} indicadores`;
+  $("grupo-nome").textContent = grupo.nome;
+  $("grupo-descricao").textContent = grupo.descricao;
+
+  const cartoes = $("cartoes");
+  cartoes.replaceChildren(...grupo.series.map((a) => cartao(estado.por[a])));
+  const comDados = grupo.series.filter((a) => estado.por[a]?.ultima);
+  const escolhido = comDados.includes(estado.escolhaPorAba[id]) ? estado.escolhaPorAba[id] : comDados[0];
+  $("detalhe").hidden = !escolhido;
+  if (escolhido) await selecionar(escolhido);
 }
 
 function cartao(s) {
-  const b = el("button", { type: "button", class: "cartao", "data-apelido": s.apelido, "aria-pressed": String(s.apelido === estado.apelido) });
-  let corpo = `<span class="nome">${escapar(s.nome)}</span><span class="unid">${escapar(s.unidade)} · ${escapar(s.periodicidade)}</span>`;
+  const b = el("button", { type: "button", class: "cartao", "data-apelido": s.apelido, "aria-pressed": "false" });
+  const tag = s.derivada ? "Calculado" : s.periodicidade;
+  let corpo = `<div class="c-topo"><span class="c-nome">${escapar(s.nome)}</span><span class="c-tag">${escapar(tag)}</span></div>
+    <div class="c-unid">${escapar(s.unidade)}</div>`;
   if (s.ultima) {
-    const seta = s.sinal_variacao > 0 ? "▲ " : s.sinal_variacao < 0 ? "▼ " : "";
-    corpo += `<div class="valor num">${escapar(s.ultima.valor_br)}</div>
-      <div class="linha"><span>Data</span><b class="num">${escapar(s.ultima.data_br)}</b></div>
-      <div class="linha"><span>Var. 12m</span><b class="num">${s.variacao_12m ? seta + escapar(s.variacao_12m) : "—"}</b></div>
-      <div class="linha"><span>${escapar(s.detalhe[0])}</span><b class="num">${escapar(s.detalhe[1])}</b></div>`;
+    corpo += `<div class="c-valor num">${escapar(s.ultima.valor_br)}</div>
+      <div class="c-var num">${s.variacao_12m ? `<b>${seta(s.sinal_variacao)} ${escapar(s.variacao_12m)}</b> em 12m` : `em ${escapar(s.ultima.data_br)}`}</div>`;
   } else {
-    corpo += `<div class="valor">—</div><div class="linha"><span>Sem dados</span></div>`;
+    corpo += `<div class="c-valor">—</div><div class="c-var">Sem dados</div>`;
     b.disabled = true;
   }
   b.innerHTML = corpo;
+  const mini = el("div", { class: "c-mini" });
+  if (s.minigrafico?.length > 1) mini.append(minigrafico(s.minigrafico));
+  b.append(mini);
   if (s.descricao) b.title = s.descricao;
-  b.addEventListener("click", async () => {
-    await selecionar(s.apelido);
-    $("painel-grafico").scrollIntoView({ behavior: "smooth", block: "start" });
-  });
+  b.addEventListener("click", () => selecionar(s.apelido));
   return b;
 }
 
-// ---------- série selecionada ----------
+/** Minigráfico dos últimos 12 meses: linha lima sobre área em cobalto. */
+function minigrafico(valores) {
+  const L = 300, A = 48, mi = Math.min(...valores), ma = Math.max(...valores);
+  const x = (i) => (i / (valores.length - 1)) * L;
+  const y = (v) => (ma === mi ? A / 2 : A - 4 - ((v - mi) / (ma - mi)) * (A - 10));
+  const linha = valores.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  const svg = svgEl("svg", { viewBox: `0 0 ${L} ${A}`, preserveAspectRatio: "none", "aria-hidden": "true" });
+  svg.append(
+    svgEl("path", { d: `${linha}L${L},${A}L0,${A}Z`, fill: "var(--cobalto)", opacity: 0.35 }),
+    svgEl("path", { d: linha, fill: "none", stroke: "var(--lima)", "stroke-width": 1.6, "vector-effect": "non-scaling-stroke", "stroke-linejoin": "round" }),
+  );
+  return svg;
+}
+
+// ---------- indicador selecionado ----------
 async function selecionar(apelido) {
   estado.apelido = apelido;
-  try { localStorage.setItem("serie", apelido); } catch {}
-  for (const c of document.querySelectorAll(".cartao")) c.setAttribute("aria-pressed", String(c.dataset.apelido === apelido));
+  estado.escolhaPorAba[estado.aba] = apelido;
+  guardar("escolhas", JSON.stringify(estado.escolhaPorAba));
+  for (const c of $("cartoes").children) c.setAttribute("aria-pressed", String(c.dataset.apelido === apelido));
   if (estado.comparar === apelido) { estado.comparar = ""; $("comparar").value = ""; }
   const s = estado.por[apelido];
   await carregarSerie(apelido);
   if (estado.comparar) await carregarSerie(estado.comparar);
 
-  $("titulo-grafico").innerHTML = `${escapar(s.nome)}<small>${escapar(s.unidade)}</small>`;
+  $("det-rotulo").textContent = `${s.grupo} · ${s.derivada ? "indicador calculado" : `SGS ${s.codigo}`} · ${s.periodicidade}`;
+  $("det-nome").textContent = s.nome;
   $("descricao").textContent = s.descricao || "";
+  $("det-valor").textContent = s.ultima.valor_br;
+  $("det-unid").textContent = s.unidade;
+  const partes = [`em ${s.ultima.data_br}`];
+  if (s.variacao_12m) partes.push(`${seta(s.sinal_variacao)} ${s.variacao_12m} em 12 meses`);
+  partes.push(`${s.detalhe[0]}: ${s.detalhe[1]}`);
+  $("det-sub").textContent = partes.join(" · ");
   $("th-valor").textContent = `Valor (${s.unidade})`;
   $("btn-csv").href = urlCsv(apelido);
   $("btn-csv").setAttribute("download", `${apelido}.csv`);
-  for (const o of $("comparar").options) o.disabled = o.value === apelido;
+  for (const o of $("comparar").querySelectorAll("option")) o.disabled = o.value === apelido;
   desenhar();
 }
 
@@ -401,6 +645,34 @@ function intervalo(pontos) {
 }
 
 const noPeriodo = (pontos, de, ate) => pontos.filter((p) => p[0] >= de && p[0] <= ate);
+
+function desenharEstatisticas(s, pontos) {
+  const caixa = $("estatisticas");
+  caixa.replaceChildren();
+  if (!pontos.length) return;
+  const mensal = s.periodicidade === "mensal";
+  const valores = pontos.map((p) => p[1]);
+  const iMi = valores.indexOf(Math.min(...valores)), iMa = valores.indexOf(Math.max(...valores));
+  const inicio = pontos[0], fim = pontos.at(-1);
+  const dif = fim[1] - inicio[1];
+  const variacao = s.eh_taxa
+    ? `${dif > 0 ? "+" : ""}${formatar(dif, s.casas)} p.p.`
+    : inicio[1] ? pct((fim[1] / inicio[1] - 1) * 100) : "—";
+  const media = valores.reduce((a, b) => a + b, 0) / valores.length;
+  const itens = [
+    ["Início", formatar(inicio[1], s.casas), dataBr(inicio[0], mensal)],
+    ["Fim", formatar(fim[1], s.casas), dataBr(fim[0], mensal)],
+    ["Variação", variacao, s.eh_taxa ? "fim − início" : "fim ÷ início"],
+    ["Mínimo", formatar(valores[iMi], s.casas), dataBr(pontos[iMi][0], mensal)],
+    ["Máximo", formatar(valores[iMa], s.casas), dataBr(pontos[iMa][0], mensal)],
+    ["Média", formatar(media, s.casas), `${pontos.length.toLocaleString("pt-BR")} observações`],
+  ];
+  for (const [rotulo, valor, sub] of itens) {
+    const d = el("div");
+    d.append(el("span", { class: "rotulo" }, rotulo), el("b", {}, valor), el("span", { class: "q" }, sub));
+    caixa.append(d);
+  }
+}
 
 function desenhar() {
   const s = estado.por[estado.apelido];
@@ -421,33 +693,27 @@ function desenhar() {
   const pontosComp = comp ? noPeriodo(estado.cache[estado.comparar] || [], de, ate) : [];
   const mensal = s.periodicidade === "mensal";
   atualizarTabela(s, pontos);
+  desenharEstatisticas(s, pontos);
 
   const legenda = $("legenda");
   legenda.replaceChildren();
   if (!pontos.length) {
-    $("faixa").textContent = "Sem observações neste período.";
+    legenda.textContent = "Sem observações neste período.";
     return;
   }
   if (comp) {
     legenda.innerHTML =
-      `<span><i style="background:var(--linha)"></i>${escapar(s.nome)} (${escapar(s.unidade)}) · eixo esquerdo</span>` +
-      `<span><i style="background:var(--linha-2)"></i>${escapar(comp.nome)} (${escapar(comp.unidade)}) · eixo direito</span>`;
+      `<span><i style="background:var(--lima)"></i>${escapar(s.nome)} · eixo esquerdo</span>` +
+      `<span><i style="background:var(--texto)"></i>${escapar(comp.nome)} · eixo direito</span>`;
   }
 
-  const valores = pontos.map((p) => p[1]);
-  const mi = Math.min(...valores), ma = Math.max(...valores);
-  const pMi = pontos[valores.indexOf(mi)], pMa = pontos[valores.indexOf(ma)];
-  $("faixa").textContent =
-    `${dataBr(pontos[0][0], mensal)} a ${dataBr(pontos.at(-1)[0], mensal)} · ` +
-    `mínimo ${formatar(mi, s.casas)} (${dataBr(pMi[0], mensal)}) · máximo ${formatar(ma, s.casas)} (${dataBr(pMa[0], mensal)})`;
-
   const L = svg.clientWidth, A = svg.clientHeight;
-  const m = { e: 64, d: pontosComp.length ? 72 : 8, c: 10, b: 28 };
+  const m = { e: 60, d: pontosComp.length ? 70 : 64, c: 16, b: 30 };
   const escala = (vals) => {
     const { ticks, casas } = ticksBonitos(Math.min(...vals), Math.max(...vals), 5);
     return { ticks, casas, y0: ticks[0], y1: ticks.at(-1) };
   };
-  const e1 = escala(valores);
+  const e1 = escala(pontos.map((p) => p[1]));
   const e2 = pontosComp.length ? escala(pontosComp.map((p) => p[1])) : null;
   let x0 = pontos[0][0], x1 = pontos.at(-1)[0];
   if (pontosComp.length) { x0 = Math.min(x0, pontosComp[0][0]); x1 = Math.max(x1, pontosComp.at(-1)[0]); }
@@ -457,9 +723,17 @@ function desenhar() {
   svg.setAttribute("viewBox", `0 0 ${L} ${A}`);
   svg.setAttribute("aria-label", `Gráfico de ${s.nome}${comp ? ` comparado com ${comp.nome}` : ""}`);
 
+  // Degradê da área: cobalto em cima, sumindo até o eixo.
+  const defs = svgEl("defs");
+  const grad = svgEl("linearGradient", { id: "degrade", x1: 0, y1: 0, x2: 0, y2: 1 });
+  grad.append(svgEl("stop", { offset: "0%", "stop-color": "#1558C9", "stop-opacity": comp ? 0.35 : 0.65 }),
+    svgEl("stop", { offset: "100%", "stop-color": "#1558C9", "stop-opacity": 0 }));
+  defs.append(grad);
+  svg.append(defs);
+
   for (const t of e1.ticks) {
-    svg.append(svgEl("line", { x1: m.e, x2: L - m.d, y1: py(t), y2: py(t), stroke: "var(--grade)" }));
-    svg.append(svgEl("text", { x: m.e - 8, y: py(t) + 4, "text-anchor": "end" }, formatar(t, e1.casas)));
+    svg.append(svgEl("line", { x1: m.e, x2: L - m.d, y1: py(t), y2: py(t), stroke: "var(--fio)" }));
+    svg.append(svgEl("text", { x: m.e - 10, y: py(t) + 4, "text-anchor": "end" }, formatar(t, e1.casas)));
   }
   if (e2) {
     // Eixo direito: rótulos nas mesmas alturas das linhas de grade do eixo esquerdo.
@@ -467,7 +741,7 @@ function desenhar() {
     const casas2 = Math.max(0, -Math.floor(Math.log10((e2.y1 - e2.y0) / n) - 1e-9));
     for (let i = 0; i <= n; i++) {
       const v = e2.y0 + ((e2.y1 - e2.y0) * i) / n;
-      svg.append(svgEl("text", { x: L - m.d + 8, y: py(e1.ticks[i]) + 4, "text-anchor": "start" }, formatar(v, Math.min(casas2, 6))));
+      svg.append(svgEl("text", { x: L - m.d + 10, y: py(e1.ticks[i]) + 4, "text-anchor": "start" }, formatar(v, Math.min(casas2, 6))));
     }
   }
 
@@ -487,9 +761,10 @@ function desenhar() {
       marcas.push([t, mesBr(t)]);
     }
   }
+  svg.append(svgEl("line", { x1: m.e, x2: L - m.d, y1: A - m.b, y2: A - m.b, stroke: "var(--fio-forte)" }));
   for (const [t, rotulo] of marcas) {
-    svg.append(svgEl("line", { x1: px(t), x2: px(t), y1: A - m.b, y2: A - m.b + 4, stroke: "var(--suave)" }));
-    svg.append(svgEl("text", { x: px(t), y: A - 8, "text-anchor": "middle" }, rotulo));
+    svg.append(svgEl("line", { x1: px(t), x2: px(t), y1: A - m.b, y2: A - m.b + 5, stroke: "var(--fio-forte)" }));
+    svg.append(svgEl("text", { x: px(t), y: A - 9, "text-anchor": "middle" }, rotulo));
   }
 
   const largura = Math.max(50, Math.floor(L - m.e - m.d));
@@ -497,15 +772,28 @@ function desenhar() {
   const desenho = reduzir(pontos, largura);
   const caminho = traco(desenho, e1);
   const base = py(Math.max(e1.y0, Math.min(0, e1.y1)));
-  svg.append(svgEl("path", { d: `${caminho}L${px(desenho.at(-1)[0])},${base}L${px(desenho[0][0])},${base}Z`, fill: "var(--area)", opacity: comp ? 0.18 : 0.35 }));
-  if (e1.y0 < 0 && e1.y1 > 0) svg.append(svgEl("line", { x1: m.e, x2: L - m.d, y1: py(0), y2: py(0), stroke: "var(--suave)", "stroke-dasharray": "3 3" }));
-  if (e2) svg.append(svgEl("path", { d: traco(reduzir(pontosComp, largura), e2), fill: "none", stroke: "var(--linha-2)", "stroke-width": 1.3, "stroke-linejoin": "round", opacity: 0.85 }));
-  svg.append(svgEl("path", { d: caminho, fill: "none", stroke: "var(--linha)", "stroke-width": 1.6, "stroke-linejoin": "round" }));
+  svg.append(svgEl("path", { d: `${caminho}L${px(desenho.at(-1)[0])},${base}L${px(desenho[0][0])},${base}Z`, fill: "url(#degrade)" }));
+  if (e1.y0 < 0 && e1.y1 > 0) svg.append(svgEl("line", { x1: m.e, x2: L - m.d, y1: py(0), y2: py(0), stroke: "var(--suave)", "stroke-dasharray": "3 4" }));
+  if (e2) svg.append(svgEl("path", { d: traco(reduzir(pontosComp, largura), e2), fill: "none", stroke: "var(--texto)", "stroke-width": 1.3, "stroke-linejoin": "round", opacity: 0.8 }));
+  svg.append(svgEl("path", { d: caminho, fill: "none", stroke: "var(--lima)", "stroke-width": 1.8, "stroke-linejoin": "round" }));
+
+  // Marcador do último valor, com etiqueta à direita (quando não há eixo direito).
+  const [ut, uv] = pontos.at(-1);
+  svg.append(svgEl("circle", { cx: px(ut), cy: py(uv), r: 4, fill: "var(--lima)" }));
+  if (!e2) {
+    const texto = formatar(uv, s.casas);
+    const largEtiqueta = texto.length * 6.6 + 12;
+    const ey = Math.min(Math.max(py(uv), m.c + 9), A - m.b - 9);
+    svg.append(
+      svgEl("rect", { x: L - m.d + 8, y: ey - 9, width: largEtiqueta, height: 18, fill: "var(--lima)" }),
+      svgEl("text", { x: L - m.d + 14, y: ey + 4, style: "fill:#030407;font-weight:600" }, texto),
+    );
+  }
 
   // Interação: linha vertical + ponto(s) + dica com data e valores.
-  const guia = svgEl("line", { y1: m.c, y2: A - m.b, stroke: "var(--texto)", "stroke-dasharray": "3 3", visibility: "hidden" });
-  const ponto = svgEl("circle", { r: 4, fill: "var(--linha)", stroke: "var(--fundo)", "stroke-width": 2, visibility: "hidden" });
-  const ponto2 = svgEl("circle", { r: 3.5, fill: "var(--linha-2)", stroke: "var(--fundo)", "stroke-width": 2, visibility: "hidden" });
+  const guia = svgEl("line", { y1: m.c, y2: A - m.b, stroke: "var(--texto)", "stroke-dasharray": "2 4", visibility: "hidden" });
+  const ponto = svgEl("circle", { r: 5, fill: "var(--lima)", stroke: "var(--fundo)", "stroke-width": 2, visibility: "hidden" });
+  const ponto2 = svgEl("circle", { r: 4, fill: "var(--texto)", stroke: "var(--fundo)", "stroke-width": 2, visibility: "hidden" });
   svg.append(guia, ponto2, ponto);
   const dica = $("dica");
 
@@ -520,7 +808,7 @@ function desenhar() {
     guia.setAttribute("x1", cx); guia.setAttribute("x2", cx);
     ponto.setAttribute("cx", cx); ponto.setAttribute("cy", py(pv));
     guia.setAttribute("visibility", "visible"); ponto.setAttribute("visibility", "visible");
-    let texto = `${dataBr(pt, mensal)} · ${formatar(pv, s.casas)} ${s.unidade}`;
+    let texto = `${dataBr(pt, mensal)}\n${s.nome}: ${formatar(pv, s.casas)} ${s.unidade}`;
     const v2 = e2 ? vigente(pontosComp, pt) : null;
     if (v2) {
       ponto2.setAttribute("cx", cx); ponto2.setAttribute("cy", py(v2[1], e2)); ponto2.setAttribute("visibility", "visible");
@@ -530,7 +818,7 @@ function desenhar() {
     dica.style.display = "block";
     const w = dica.offsetWidth;
     dica.style.left = `${Math.min(Math.max(cx - w / 2, 0), L - w)}px`;
-    dica.style.top = `${Math.max(py(pv) - dica.offsetHeight - 14, 0)}px`;
+    dica.style.top = `${Math.max(py(pv) - dica.offsetHeight - 16, 0)}px`;
   };
   svg.onpointerleave = () => {
     for (const x of [guia, ponto, ponto2]) x.setAttribute("visibility", "hidden");
@@ -566,12 +854,17 @@ function reduzir(pontos, baldes) {
 // ---------- tabela e CSV do período ----------
 function atualizarTabela(s, pontos) {
   const mensal = s.periodicidade === "mensal";
-  $("contagem").textContent = `${pontos.length.toLocaleString("pt-BR")} no período · últimas 15`;
+  $("contagem").textContent = `últimas 15 de ${pontos.length.toLocaleString("pt-BR")} no período`;
   const tbody = $("tabela");
   tbody.replaceChildren();
-  for (const [ms, v] of pontos.slice(-15).reverse()) {
+  const recentes = pontos.slice(-15).reverse();
+  const maior = Math.max(...recentes.map((p) => Math.abs(p[1])), 0) || 1;
+  for (const [ms, v] of recentes) {
     const tr = el("tr");
-    tr.append(el("td", { class: "num" }, dataBr(ms, mensal)), el("td", { class: "num" }, formatar(v, s.casas)));
+    const valor = el("td", { class: "num" }, formatar(v, s.casas));
+    // Barrinha proporcional ao valor, para comparar as linhas de relance.
+    valor.append(el("span", { class: "barra", style: `width:${Math.round((Math.abs(v) / maior) * 90)}px` }));
+    tr.append(el("td", { class: "num" }, dataBr(ms, mensal)), valor);
     tbody.append(tr);
   }
 }
@@ -611,9 +904,12 @@ function lerReais(texto) {
 }
 
 function simular() {
-  const corpo = $("sim-tabela"), notas = $("sim-notas");
+  const corpo = $("sim-tabela"), notas = $("sim-notas"), barras = $("sim-barras");
   corpo.replaceChildren();
+  barras.replaceChildren();
   notas.textContent = "";
+  $("sim-final").textContent = "—";
+  $("sim-sub").textContent = "";
   const valor = lerReais($("sim-valor").value);
   const percentual = Number($("sim-pct").value);
   if (!$("sim-de").value || !$("sim-ate").value || !estado.cache.cdi) return;
@@ -653,34 +949,53 @@ function simular() {
   let fatorIpca = 1;
   for (const [ms, taxa] of estado.cache.ipca || []) {
     const fimMes = somarMeses(ms, 1);
-    const dias = (Math.min(fimMes, ate) - Math.max(ms, de)) / DIA;
-    if (dias <= 0) continue;
-    fatorIpca *= (1 + taxa / 100) ** (dias / ((fimMes - ms) / DIA));
-    ipca.push([ms, dias < (fimMes - ms) / DIA]);
+    const diasNoPeriodo = (Math.min(fimMes, ate) - Math.max(ms, de)) / DIA;
+    if (diasNoPeriodo <= 0) continue;
+    fatorIpca *= (1 + taxa / 100) ** (diasNoPeriodo / ((fimMes - ms) / DIA));
+    ipca.push([ms, diasNoPeriodo < (fimMes - ms) / DIA]);
   }
   const ultimoIpca = (estado.cache.ipca || []).at(-1)?.[0];
   const faltando = ultimoIpca !== undefined && somarMeses(ultimoIpca, 1) < ate;
 
   const linhas = [
-    [`${formatar(percentual, 0)}% do CDI`, fatorCdi, true, true],
-    ["Poupança", fatorPoup, false, true],
-    ["Só a inflação (IPCA)", ipca.length ? fatorIpca : null, false, false],
+    { nome: `${formatar(percentual, 0)}% do CDI`, fator: fatorCdi, real: true },
+    { nome: "Poupança", fator: fatorPoup, real: true },
+    { nome: "Só a inflação (IPCA)", fator: ipca.length ? fatorIpca : null, real: false },
   ];
-  for (const [nome, fator, destaque, comReal] of linhas) {
-    const tr = el("tr", destaque ? { class: "sim-destaque" } : {});
-    const real = fator && comReal && ipca.length ? pct((fator / fatorIpca - 1) * 100) : "—";
+  const validos = linhas.filter((l) => l.fator);
+  const lider = validos.reduce((a, b) => (b.fator > a.fator ? b : a), validos[0]);
+
+  $("sim-rotulo").textContent = `Valor final · ${formatar(percentual, 0)}% do CDI`;
+  $("sim-final").textContent = reais(valor * fatorCdi);
+  const ganho = valor * (fatorCdi - 1);
+  $("sim-sub").textContent = `${ganho >= 0 ? "+" : ""}${reais(ganho)} (${pct((fatorCdi - 1) * 100)}) em ${dias} dias úteis` +
+    (ipca.length ? ` · ganho real ${pct((fatorCdi / fatorIpca - 1) * 100)}` : "");
+
+  const maiorFator = Math.max(...validos.map((l) => l.fator));
+  for (const l of linhas) {
+    const tr = el("tr", l === lider ? { class: "lider" } : {});
     tr.append(
-      el("td", {}, nome),
-      el("td", { class: "num" }, fator ? reais(valor * fator) : "—"),
-      el("td", { class: "num" }, fator ? pct((fator - 1) * 100) : "—"),
-      el("td", { class: "num" }, real),
+      el("td", {}, l.nome),
+      el("td", { class: "num" }, l.fator ? reais(valor * l.fator) : "—"),
+      el("td", { class: "num" }, l.fator ? pct((l.fator - 1) * 100) : "—"),
+      el("td", { class: "num" }, l.fator && l.real && ipca.length ? pct((l.fator / fatorIpca - 1) * 100) : "—"),
     );
     corpo.append(tr);
+
+    // Barras: o tamanho é o valor final em relação ao maior, partindo do valor aplicado.
+    const linha = el("div", { class: `sim-linha${l === lider ? " lider" : ""}` });
+    const trilho = el("div", { class: "trilho" });
+    if (l.fator) {
+      const proporcao = maiorFator > 1 ? Math.max(0, (l.fator - 1) / (maiorFator - 1)) : 0;
+      trilho.append(el("div", { class: "preench", style: `width:${(proporcao * 100).toFixed(1)}%` }));
+    }
+    linha.append(el("span", {}, l.nome), trilho, el("span", { class: "val num" }, l.fator ? pct((l.fator - 1) * 100) : "sem dados"));
+    barras.append(linha);
   }
 
   const partes = [`Valores brutos, sem imposto de renda nem taxas. CDI: ${dias} dias úteis.`];
   partes.push(fatorPoup
-    ? `Poupança: ${meses} ${meses === 1 ? "aniversário" : "aniversários"} mensais completos.`
+    ? `Poupança: ${meses} ${meses === 1 ? "aniversário mensal completo" : "aniversários mensais completos"}.`
     : "Poupança: sem dados para o período (a série começa em 04/05/2012).");
   if (ipca.length) {
     let texto = `Inflação: IPCA de ${mesBr(ipca[0][0])} a ${mesBr(ipca.at(-1)[0])}`;
@@ -699,7 +1014,7 @@ $("periodos").addEventListener("click", (ev) => {
   const b = ev.target.closest("button");
   if (!b) return;
   estado.anos = Number(b.dataset.anos);
-  try { localStorage.setItem("anos", String(estado.anos)); } catch {}
+  guardar("anos", String(estado.anos));
   desenhar();
 });
 for (const id of ["de", "ate"]) {
@@ -716,6 +1031,10 @@ $("comparar").addEventListener("change", async (ev) => {
   if (estado.comparar) await carregarSerie(estado.comparar);
   desenhar();
 });
+window.addEventListener("hashchange", () => {
+  const id = location.hash.slice(1);
+  if (estado.resumo && id !== estado.aba && [...estado.resumo.grupos.map((g) => g.id), SIMULADOR.id].includes(id)) mostrarAba(id);
+});
 
 if (ESTATICO) {
   $("btn-coletar").hidden = true;
@@ -723,7 +1042,7 @@ if (ESTATICO) {
   $("btn-coletar").addEventListener("click", async () => {
     const botao = $("btn-coletar");
     botao.disabled = true;
-    botao.textContent = "Atualizando…";
+    botao.lastElementChild.textContent = "Atualizando…";
     aviso("Baixando dados novos da API do Banco Central…");
     try {
       const { resultados } = await api("/api/coletar", { method: "POST", headers: { "X-BCB-Indicadores": "1" } });
@@ -739,15 +1058,21 @@ if (ESTATICO) {
       aviso(`Não foi possível atualizar: ${escapar(e.message)}`, true);
     } finally {
       botao.disabled = false;
-      botao.textContent = "Atualizar dados";
+      botao.lastElementChild.textContent = "Atualizar dados";
     }
   });
 }
 
 let espera;
-window.addEventListener("resize", () => { clearTimeout(espera); espera = setTimeout(() => estado.apelido && desenhar(), 120); });
+window.addEventListener("resize", () => {
+  clearTimeout(espera);
+  espera = setTimeout(() => estado.apelido && !$("secao-grupo").hidden && desenhar(), 120);
+});
 
-carregarResumo().catch((e) => aviso(`Erro ao carregar os dados: ${escapar(e.message)}`, true));
+carregarResumo().catch((e) => {
+  $("status-texto").textContent = "Erro ao carregar";
+  aviso(`Erro ao carregar os dados: ${escapar(e.message)}`, true);
+});
 </script>
 </body>
 </html>

@@ -36,6 +36,7 @@ from bcb_indicadores.coleta import Cliente, coletar_serie
 from bcb_indicadores.formatacao import data_br, numero_br
 from bcb_indicadores.relatorios import (
     ResumoSerie,
+    data_de_corte,
     derivadas_do_banco,
     observacoes_do_indicador,
     resumir,
@@ -51,12 +52,30 @@ PORTA_PADRAO = 8000
 # outra página aberta no navegador dispare coletas.
 CABECALHO_ACAO = "X-BCB-Indicadores"
 
-# Grupos e ordem dos cartões na página.
-GRUPOS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("Juros", ("selic", "cdi", "juroreal", "poupanca")),
-    ("Inflação", ("ipca", "ipca12m", "igpm", "igpm12m")),
-    ("Câmbio e atividade", ("dolar", "euro", "ibcbr")),
+# Grupos (abas da página) e ordem dos cartões: (id, nome, descrição, apelidos).
+GRUPOS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
+    (
+        "juros",
+        "Juros",
+        "A taxa básica da economia, quanto rendem CDI e poupança e o juro acima da inflação.",
+        ("selic", "cdi", "juroreal", "poupanca"),
+    ),
+    (
+        "inflacao",
+        "Inflação",
+        "Quanto os preços sobem: IPCA (consumidor) e IGP-M (atacado), no mês e em 12 meses.",
+        ("ipca", "ipca12m", "igpm", "igpm12m"),
+    ),
+    (
+        "cambio",
+        "Câmbio e atividade",
+        "Dólar e euro pela taxa de referência do Banco Central e o ritmo da economia pelo IBC-Br.",
+        ("dolar", "euro", "ibcbr"),
+    ),
 )
+
+# Pontos de cada minigráfico (últimos 12 meses) enviados no resumo.
+PONTOS_MINIGRAFICO = 60
 
 # Marcador no HTML trocado por ``gerar_site`` para ligar o modo estático.
 MARCADOR_MODO = "<!-- modo -->"
@@ -78,24 +97,37 @@ class Aplicacao:
 
     def resumo(self) -> dict:
         with banco.abrir_banco(self.caminho_banco) as conexao:
-            itens = {
-                s.apelido: _resumo_json(
-                    resumo_do_banco(conexao, s), banco.contar(conexao, s.codigo)
+            itens = {}
+            for s in SERIES:
+                r = resumo_do_banco(conexao, s)
+                ultimos_12m = (
+                    banco.listar(conexao, s.codigo, desde=data_de_corte(r.ultima.data))
+                    if r.ultima
+                    else []
                 )
-                for s in SERIES
-            }
+                itens[s.apelido] = _resumo_json(r, banco.contar(conexao, s.codigo), ultimos_12m)
             derivadas = derivadas_do_banco(conexao)
         for d in DERIVADAS:
             observacoes = derivadas[d.apelido]
-            itens[d.apelido] = _resumo_json(resumir(d, observacoes), len(observacoes))
+            r = resumir(d, observacoes)
+            ultimos_12m = (
+                [o for o in observacoes if o.data >= data_de_corte(r.ultima.data)]
+                if r.ultima
+                else []
+            )
+            itens[d.apelido] = _resumo_json(r, len(observacoes), ultimos_12m)
         _detalhes_derivados(itens)
         series = []
-        for grupo, apelidos in GRUPOS:
+        for grupo_id, grupo, _descricao, apelidos in GRUPOS:
             for apelido in apelidos:
-                series.append({**itens[apelido], "grupo": grupo})
+                series.append({**itens[apelido], "grupo": grupo, "grupo_id": grupo_id})
         return {
             "banco": str(self.caminho_banco),
             "gerado_em": datetime.now().astimezone().isoformat(timespec="minutes"),
+            "grupos": [
+                {"id": gid, "nome": nome, "descricao": desc, "series": list(apelidos)}
+                for gid, nome, desc, apelidos in GRUPOS
+            ],
             "series": series,
         }
 
@@ -148,14 +180,23 @@ class Aplicacao:
             self._coletando.release()
 
 
-def _resumo_json(r: ResumoSerie, total: int) -> dict:
+def _minigrafico(observacoes: list) -> list[float]:
+    """Até ``PONTOS_MINIGRAFICO`` valores igualmente espaçados, sempre com o último."""
+    valores = [float(o.valor) for o in observacoes]
+    if len(valores) <= PONTOS_MINIGRAFICO:
+        return valores
+    passo = (len(valores) - 1) / (PONTOS_MINIGRAFICO - 1)
+    return [valores[round(i * passo)] for i in range(PONTOS_MINIGRAFICO)]
+
+
+def _resumo_json(r: ResumoSerie, total: int, ultimos_12m: list | None = None) -> dict:
     serie = r.serie
     derivada = isinstance(serie, Derivada)
     dados = {
         "apelido": serie.apelido,
         "codigo": None if derivada else serie.codigo,
         "derivada": derivada,
-        "descricao": serie.descricao if derivada else None,
+        "descricao": serie.descricao or None,
         "nome": serie.nome,
         "unidade": serie.unidade,
         "periodicidade": serie.periodicidade,
@@ -184,6 +225,7 @@ def _resumo_json(r: ResumoSerie, total: int) -> dict:
     dados["sinal_variacao"] = (r.variacao_12m > 0) - (r.variacao_12m < 0) if variacao else 0
     dados["media_12m"] = numero_br(r.media_12m, serie.casas)
     dados["detalhe"] = ["Média 12m", dados["media_12m"]]
+    dados["minigrafico"] = _minigrafico(ultimos_12m or [])
     return dados
 
 

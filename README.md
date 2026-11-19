@@ -39,7 +39,7 @@ Além dessas, o projeto calcula três **indicadores derivados** a partir das sé
   atualizado sozinho todo dia.
 - **Coleta agendada** (`agendar`) e **atalho no menu de aplicativos** (`atalho`), para usar sem terminal.
 - Uma única dependência externa (`requests`); banco com `sqlite3` da biblioteca padrão.
-- **161 testes** com pytest, que rodam **sem internet**, usando respostas reais gravadas da API.
+- **164 testes** com pytest, que rodam **sem internet**, usando respostas reais gravadas da API.
 - CI no GitHub Actions: ruff + pytest no Linux e no Windows a cada push.
 
 ## Instalação
@@ -218,8 +218,12 @@ Pressione Ctrl+C para encerrar.
 
 O navegador abre sozinho com:
 
-- **cartões** agrupados em juros, inflação e câmbio/atividade, com último valor, variação de
-  12 meses e média ou composição do cálculo (os mesmos números do `resumo`);
+- **abas** para ver cada área separadamente (Juros, Inflação, Câmbio e atividade, Simulador);
+  a aba fica no endereço (`#inflacao`), então dá para compartilhar o link direto;
+- **cartões** com último valor, variação de 12 meses e um minigráfico dos últimos 12 meses
+  (os mesmos números do `resumo`), e uma faixa de destaques no topo;
+- **painel de detalhe** com o valor em destaque e o resumo do período: início, fim,
+  variação, mínimo, máximo e média;
 - **gráfico** do indicador escolhido, com períodos de 1, 5 ou 10 anos, o histórico todo ou
   datas escolhidas (de/até), e data e valor ao passar o mouse;
 - **comparação** com outro indicador no mesmo gráfico, com um eixo para cada um (ex.: Selic × IPCA 12 meses);
@@ -278,7 +282,7 @@ bcb-indicadores ultimos: error: argument SÉRIE: Série desconhecida: 'libra'. O
 ## Testes e qualidade
 
 ```bash
-pytest               # 161 testes, sem acesso à internet
+pytest               # 164 testes, sem acesso à internet
 ruff check .         # lint
 ruff format --check .
 ```

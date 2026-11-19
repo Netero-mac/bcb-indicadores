@@ -51,7 +51,7 @@ def test_pagina_inicial(url):
     r = requests.get(url, timeout=5)
     assert r.status_code == 200
     assert r.headers["Content-Type"].startswith("text/html")
-    assert "Indicadores <em>econômicos</em>" in r.text
+    assert "Indicadores<br><em>econômicos</em>" in r.text
 
 
 def test_resumo_com_banco_vazio(url):
@@ -248,3 +248,41 @@ def test_ja_esta_rodando_em_porta_livre():
     from bcb_indicadores.web import ja_esta_rodando
 
     assert ja_esta_rodando(1) is False
+
+
+def test_resumo_traz_grupos_das_abas(url):
+    dados = requests.get(f"{url}/api/resumo", timeout=5).json()
+    assert [g["id"] for g in dados["grupos"]] == ["juros", "inflacao", "cambio"]
+    juros = dados["grupos"][0]
+    assert juros["nome"] == "Juros"
+    assert juros["series"] == ["selic", "cdi", "juroreal", "poupanca"]
+    assert juros["descricao"]
+    assert {s["grupo_id"] for s in dados["series"]} == {"juros", "inflacao", "cambio"}
+    # Todas as séries do SGS e os derivados têm descrição para a interface.
+    assert all(s["descricao"] for s in dados["series"])
+
+
+def test_minigrafico_dos_ultimos_12_meses(url, caminho_banco):
+    from datetime import date, timedelta
+
+    from bcb_indicadores.web import PONTOS_MINIGRAFICO
+
+    # 500 dias de Selic: o minigráfico usa só os últimos 12 meses, reduzidos a 60 pontos.
+    inicio = date(2025, 7, 1)
+    serie = [
+        obs((inicio + timedelta(days=i)).isoformat(), f"{10 + i / 100:.2f}") for i in range(500)
+    ]
+    with banco.abrir_banco(caminho_banco) as conexao:
+        banco.gravar(conexao, 432, serie)
+
+    selic = requests.get(f"{url}/api/resumo", timeout=5).json()["series"][0]
+    pontos = selic["minigrafico"]
+    assert len(pontos) == PONTOS_MINIGRAFICO
+    assert pontos[-1] == float(serie[-1].valor)  # sempre termina no último valor
+    assert pontos[0] >= float(serie[-366].valor)  # nada antes de 12 meses atrás
+    assert pontos == sorted(pontos)
+
+
+def test_minigrafico_vazio_sem_dados(url):
+    dados = requests.get(f"{url}/api/resumo", timeout=5).json()
+    assert all("minigrafico" not in s or s["minigrafico"] == [] for s in dados["series"])

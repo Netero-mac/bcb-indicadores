@@ -13,6 +13,7 @@ class Serie:
     unidade: str
     periodicidade: str  # "diária" ou "mensal"
     casas: int  # casas decimais publicadas pelo BCB, usadas na exibição
+    descricao: str = ""  # explicação curta, exibida na interface
 
     @property
     def eh_taxa(self) -> bool:
@@ -21,15 +22,79 @@ class Serie:
 
 
 SERIES: tuple[Serie, ...] = (
-    Serie(432, "selic", "Selic meta", "% a.a.", "diária", 2),
-    Serie(433, "ipca", "IPCA mensal", "% a.m.", "mensal", 2),
-    Serie(1, "dolar", "Dólar PTAX venda", "R$", "diária", 4),
-    Serie(12, "cdi", "CDI diário", "% a.d.", "diária", 6),
-    Serie(189, "igpm", "IGP-M mensal", "% a.m.", "mensal", 2),
-    Serie(21620, "euro", "Euro PTAX venda", "R$", "diária", 4),
+    Serie(
+        432,
+        "selic",
+        "Selic meta",
+        "% a.a.",
+        "diária",
+        2,
+        "Taxa básica de juros, definida pelo Copom. Serve de referência para as demais taxas.",
+    ),
+    Serie(
+        433,
+        "ipca",
+        "IPCA mensal",
+        "% a.m.",
+        "mensal",
+        2,
+        "Inflação oficial do país, medida pelo IBGE: variação mensal dos preços ao consumidor.",
+    ),
+    Serie(
+        1,
+        "dolar",
+        "Dólar PTAX venda",
+        "R$",
+        "diária",
+        4,
+        "Taxa de câmbio de referência do dólar, calculada pelo Banco Central (PTAX, venda).",
+    ),
+    Serie(
+        12,
+        "cdi",
+        "CDI diário",
+        "% a.d.",
+        "diária",
+        6,
+        "Taxa dos empréstimos de um dia entre bancos, referência para a renda fixa.",
+    ),
+    Serie(
+        189,
+        "igpm",
+        "IGP-M mensal",
+        "% a.m.",
+        "mensal",
+        2,
+        "Índice Geral de Preços - Mercado (FGV), com peso grande dos preços no atacado.",
+    ),
+    Serie(
+        21620,
+        "euro",
+        "Euro PTAX venda",
+        "R$",
+        "diária",
+        4,
+        "Taxa de câmbio de referência do euro, calculada pelo Banco Central (PTAX, venda).",
+    ),
     # Poupança: uma observação por dia de aniversário, com o rendimento do mês seguinte.
-    Serie(195, "poupanca", "Poupança", "% a.m.", "diária", 4),
-    Serie(24364, "ibcbr", "IBC-Br dessazonalizado", "índice", "mensal", 2),
+    Serie(
+        195,
+        "poupanca",
+        "Poupança",
+        "% a.m.",
+        "diária",
+        4,
+        "Rendimento mensal da poupança por dia de aniversário (regra vigente desde 04/05/2012).",
+    ),
+    Serie(
+        24364,
+        "ibcbr",
+        "IBC-Br dessazonalizado",
+        "índice",
+        "mensal",
+        2,
+        "Índice de Atividade Econômica do Banco Central, prévia do PIB. Com ajuste sazonal.",
+    ),
 )
 
 
