@@ -50,7 +50,7 @@ def test_pagina_inicial(url):
     r = requests.get(url, timeout=5)
     assert r.status_code == 200
     assert r.headers["Content-Type"].startswith("text/html")
-    assert "Indicadores do Banco Central" in r.text
+    assert "Indicadores <em>econômicos</em>" in r.text
 
 
 def test_resumo_com_banco_vazio(url):

@@ -5,121 +5,137 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Indicadores BCB</title>
 <style>
+  /* Paleta: Midnight Black #030407 · Electric Cobalt Blue #1558C9 · Acid Lime #D4FF24 */
   :root {
-    --fundo: #f6f7f9;
-    --painel: #ffffff;
-    --texto: #1b1f24;
-    --suave: #5d6673;
-    --borda: #e2e5ea;
-    --grade: #eceef2;
-    --destaque: #1f5fbf;
-    --destaque-fundo: #e8f0fc;
-    --linha: #1f5fbf;
-    --sobe: #b4441c;
-    --desce: #1d7a4a;
-    --erro: #b42318;
-    --sombra: 0 1px 2px rgb(16 24 40 / 6%);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --fundo: #111418;
-      --painel: #1a1e24;
-      --texto: #e7eaee;
-      --suave: #9aa3ae;
-      --borda: #2b313a;
-      --grade: #242a31;
-      --destaque: #6ea2f0;
-      --destaque-fundo: #1d2b40;
-      --linha: #6ea2f0;
-      --sobe: #f08a5d;
-      --desce: #5cc48c;
-      --erro: #f97066;
-      --sombra: none;
-    }
+    color-scheme: dark;
+    --preto: #030407;
+    --cobalto: #1558C9;
+    --lima: #D4FF24;
+    --fundo: var(--preto);
+    --texto: #EDEEE8;
+    --suave: #8B8F98;
+    --fio: #23262D;
+    --grade: #15181E;
+    --linha: var(--lima);
+    --area: var(--cobalto);
+    --erro: #FF6B5A;
+    --serifa: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --mono: "JetBrains Mono", "IBM Plex Mono", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
   }
   * { box-sizing: border-box; }
+  html { background: var(--fundo); }
   body {
-    margin: 0;
-    background: var(--fundo);
-    color: var(--texto);
-    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    margin: 0; background: var(--fundo); color: var(--texto);
+    font: 14px/1.5 var(--mono);
+    -webkit-font-smoothing: antialiased;
   }
-  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  ::selection { background: var(--lima); color: var(--preto); }
+  main { max-width: 1180px; margin: 0 auto; padding: 40px 16px 56px; }
+
+  /* Cabeçalho */
   header {
-    display: flex; flex-wrap: wrap; gap: 12px 24px;
-    align-items: center; justify-content: space-between; margin-bottom: 20px;
+    display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: flex-end; justify-content: space-between;
+    padding-bottom: 24px; border-bottom: 1px solid var(--texto); margin-bottom: 0;
   }
-  h1 { font-size: 22px; margin: 0; }
-  .sub { color: var(--suave); font-size: 13px; margin-top: 2px; }
+  .rotulo { font: 500 11px/1.4 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--suave); }
+  h1 {
+    font: 400 clamp(40px, 7vw, 76px)/0.95 var(--serifa); letter-spacing: -0.02em; margin: 10px 0 0;
+  }
+  h1 em { font-style: italic; color: var(--lima); }
+  .sub { color: var(--suave); font-size: 11px; margin-top: 14px; word-break: break-all; }
   .num { font-variant-numeric: tabular-nums; }
+
   button, .botao {
-    font: inherit; font-size: 14px; cursor: pointer;
-    border: 1px solid var(--borda); background: var(--painel); color: var(--texto);
-    border-radius: 8px; padding: 7px 14px; text-decoration: none; display: inline-block;
+    font: 500 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; cursor: pointer;
+    border: 1px solid var(--texto); background: transparent; color: var(--texto);
+    border-radius: 0; padding: 12px 18px; text-decoration: none; display: inline-block;
   }
-  button:hover, .botao:hover { border-color: var(--destaque); }
-  button:focus-visible, .botao:focus-visible, .cartao:focus-visible {
-    outline: 2px solid var(--destaque); outline-offset: 2px;
-  }
-  button.primario { background: var(--destaque); border-color: var(--destaque); color: #fff; }
-  @media (prefers-color-scheme: dark) { button.primario { color: #0d1420; } }
-  button:disabled { opacity: .6; cursor: progress; }
-  .aviso {
-    border: 1px solid var(--borda); background: var(--painel); border-radius: 10px;
-    padding: 12px 16px; margin-bottom: 16px; font-size: 14px;
-  }
-  .aviso.erro { border-color: var(--erro); color: var(--erro); }
+  button:hover, .botao:hover { background: var(--texto); color: var(--preto); }
+  button:focus-visible, .botao:focus-visible { outline: 2px solid var(--lima); outline-offset: 3px; }
+  button.primario { background: var(--lima); border-color: var(--lima); color: var(--preto); }
+  button.primario:hover { background: var(--texto); border-color: var(--texto); }
+  button:disabled { opacity: .55; cursor: progress; }
+
+  /* Avisos */
+  .aviso { border-left: 3px solid var(--lima); padding: 12px 16px; margin: 20px 0 0; background: #0B0D12; }
+  .aviso.erro { border-left-color: var(--erro); color: var(--erro); }
   .aviso ul { margin: 6px 0 0; padding-left: 20px; }
+
+  /* Faixa de séries: fios finos entre as colunas, sem caixas arredondadas */
   .cartoes {
-    display: grid; gap: 12px; margin-bottom: 20px;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1px; background: var(--fio); border-bottom: 1px solid var(--fio); margin: 0 0 40px;
   }
   .cartao {
-    text-align: left; background: var(--painel); border: 1px solid var(--borda);
-    border-radius: 12px; padding: 14px 16px; box-shadow: var(--sombra); width: 100%;
+    text-align: left; background: var(--fundo); border: 0; padding: 20px 20px 22px;
+    text-transform: none; letter-spacing: 0; font: inherit; width: 100%; color: var(--texto);
+    transition: background .15s;
   }
-  .cartao[aria-pressed="true"] { border-color: var(--destaque); box-shadow: 0 0 0 1px var(--destaque); }
-  .cartao .nome { font-weight: 600; }
-  .cartao .unid { color: var(--suave); font-size: 12px; margin-left: 4px; font-weight: 400; }
-  .cartao .valor { font-size: 26px; font-weight: 650; margin: 6px 0 2px; }
-  .cartao .linha { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--suave); }
+  .cartao:hover { background: #0B0D12; color: var(--texto); }
+  .cartao[aria-pressed="true"] { background: var(--cobalto); }
+  .cartao:disabled { cursor: default; opacity: .5; }
+  .cartao .nome { font: 400 22px/1.15 var(--serifa); display: block; }
+  .cartao .unid { display: block; font: 500 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--suave); margin-top: 6px; }
+  .cartao[aria-pressed="true"] .unid,
+  .cartao[aria-pressed="true"] .linha { color: rgb(255 255 255 / 72%); }
+  .cartao .valor { font: 500 36px/1 var(--mono); letter-spacing: -0.03em; margin: 22px 0 14px; }
+  .cartao .linha {
+    display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--suave);
+    padding-top: 6px;
+  }
   .cartao .linha b { font-weight: 500; color: var(--texto); }
-  .sobe { color: var(--sobe) !important; }
-  .desce { color: var(--desce) !important; }
-  .painel {
-    background: var(--painel); border: 1px solid var(--borda); border-radius: 12px;
-    padding: 16px; box-shadow: var(--sombra); margin-bottom: 20px;
-  }
+  .cartao[aria-pressed="true"] .linha b { color: #fff; }
+  .sobe, .desce { color: inherit; }
+
+  /* Painéis */
+  .painel { margin-bottom: 48px; }
   .painel-topo {
-    display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center;
-    margin-bottom: 8px;
+    display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: baseline;
+    border-bottom: 1px solid var(--fio); padding-bottom: 12px; margin-bottom: 14px;
   }
-  .painel h2 { font-size: 17px; margin: 0; }
-  .periodos { display: flex; gap: 4px; }
-  .periodos button { padding: 4px 10px; font-size: 13px; }
-  .periodos button[aria-pressed="true"] { background: var(--destaque-fundo); border-color: var(--destaque); color: var(--destaque); }
-  .faixa { color: var(--suave); font-size: 13px; margin-bottom: 8px; }
+  .painel h2 { font: 400 30px/1.1 var(--serifa); margin: 0; }
+  .painel h2 small { font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--suave); margin-left: 10px; }
+  .periodos { display: flex; gap: 0; }
+  .periodos button { padding: 8px 12px; border-color: var(--fio); margin-left: -1px; }
+  .periodos button[aria-pressed="true"] { background: var(--lima); border-color: var(--lima); color: var(--preto); position: relative; }
+  .faixa { color: var(--suave); font-size: 12px; margin-bottom: 12px; }
   .grafico { position: relative; }
-  svg { display: block; width: 100%; height: 320px; }
-  svg text { fill: var(--suave); font-size: 11px; }
+  svg { display: block; width: 100%; height: 360px; }
+  svg text { fill: var(--suave); font: 11px var(--mono); }
   .dica {
-    position: absolute; pointer-events: none; background: var(--texto); color: var(--fundo);
-    padding: 5px 9px; border-radius: 6px; font-size: 12px; white-space: nowrap; display: none;
+    position: absolute; pointer-events: none; background: var(--lima); color: var(--preto);
+    padding: 6px 10px; font: 500 12px/1.2 var(--mono); white-space: nowrap; display: none;
   }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { padding: 6px 8px; border-bottom: 1px solid var(--grade); }
-  th { text-align: left; color: var(--suave); font-weight: 500; }
+
+  /* Tabela */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 9px 0; border-bottom: 1px solid var(--grade); }
+  th { text-align: left; color: var(--suave); font-weight: 500; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
   td.num, th.num { text-align: right; }
-  .vazio { color: var(--suave); padding: 40px 0; text-align: center; }
-  footer { color: var(--suave); font-size: 12px; text-align: center; }
-  footer a { color: inherit; }
+  tbody tr:first-child td { color: var(--lima); }
+
+  footer {
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px;
+    border-top: 1px solid var(--texto); padding-top: 14px; color: var(--suave);
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  }
+  footer a { color: var(--texto); text-underline-offset: 3px; }
+  footer a:hover { color: var(--lima); }
+
+  @media (max-width: 600px) {
+    main { padding-top: 28px; }
+    header { align-items: flex-start; flex-direction: column; }
+    .painel h2 small { display: block; margin: 6px 0 0; }
+    svg { height: 280px; }
+  }
 </style>
 </head>
 <body>
 <main>
   <header>
     <div>
-      <h1>Indicadores do Banco Central</h1>
+      <div class="rotulo">Banco Central do Brasil · Séries temporais SGS</div>
+      <h1>Indicadores <em>econômicos</em></h1>
       <div class="sub" id="banco"></div>
     </div>
     <button class="primario" id="btn-coletar" type="button">Atualizar dados</button>
@@ -156,7 +172,7 @@
     </table>
   </section>
 
-  <footer>Fonte: Banco Central do Brasil — <a href="https://dadosabertos.bcb.gov.br/" target="_blank" rel="noopener">SGS</a></footer>
+  <footer><span>Fonte: Banco Central do Brasil</span><a href="https://dadosabertos.bcb.gov.br/" target="_blank" rel="noopener">dadosabertos.bcb.gov.br</a></footer>
 </main>
 
 <script>
@@ -218,14 +234,14 @@ async function carregarResumo() {
   cartoes.replaceChildren();
   for (const s of series) {
     const b = el("button", { type: "button", class: "cartao", "aria-pressed": String(s.apelido === estado.apelido) });
-    let corpo = `<div class="nome">${escapar(s.nome)}<span class="unid">${escapar(s.unidade)}</span></div>`;
+    let corpo = `<span class="nome">${escapar(s.nome)}</span><span class="unid">${escapar(s.unidade)} · ${escapar(s.periodicidade)}</span>`;
     if (s.ultima) {
       const classe = s.sinal_variacao > 0 ? "sobe" : s.sinal_variacao < 0 ? "desce" : "";
       const seta = s.sinal_variacao > 0 ? "▲ " : s.sinal_variacao < 0 ? "▼ " : "";
       corpo += `<div class="valor num">${escapar(s.ultima.valor_br)}</div>
-        <div class="linha"><span>em ${escapar(s.ultima.data_br)}</span></div>
-        <div class="linha"><span>Var. 12 meses</span><b class="num ${classe}">${s.variacao_12m ? seta + escapar(s.variacao_12m) : "—"}</b></div>
-        <div class="linha"><span>Média 12 meses</span><b class="num">${escapar(s.media_12m)}</b></div>`;
+        <div class="linha"><span>Data</span><b class="num">${escapar(s.ultima.data_br)}</b></div>
+        <div class="linha"><span>Var. 12m</span><b class="num ${classe}">${s.variacao_12m ? seta + escapar(s.variacao_12m) : "—"}</b></div>
+        <div class="linha"><span>Média 12m</span><b class="num">${escapar(s.media_12m)}</b></div>`;
     } else {
       corpo += `<div class="valor">—</div><div class="linha"><span>Sem dados</span></div>`;
       b.disabled = true;
@@ -252,7 +268,7 @@ async function selecionar(apelido, recarregar = false) {
     estado.cache[apelido] = dados.observacoes.map(([d, v]) => [paraMs(d), Number(v)]);
   }
   const pontos = estado.cache[apelido];
-  $("titulo-grafico").textContent = `${s.nome} (${s.unidade})`;
+  $("titulo-grafico").innerHTML = `${escapar(s.nome)}<small>${escapar(s.unidade)}</small>`;
   $("th-valor").textContent = `Valor (${s.unidade})`;
   $("btn-csv").href = `/api/series/${apelido}.csv`;
   $("btn-csv").setAttribute("download", `${apelido}.csv`);
@@ -322,7 +338,7 @@ function desenhar() {
     `máximo ${formatar(ma, s.casas)} (${dataBr(pontos[iMa][0], mensal)})`;
 
   const L = svg.clientWidth, A = svg.clientHeight;
-  const m = { e: 58, d: 12, c: 10, b: 26 };
+  const m = { e: 64, d: 8, c: 10, b: 28 };
   const { ticks, casas } = ticksBonitos(mi, ma, 5);
   const y0 = ticks[0], y1 = ticks[ticks.length - 1];
   const x0 = pontos[0][0], x1 = Math.max(ultimo, x0 + 1);
@@ -360,13 +376,13 @@ function desenhar() {
   const desenho = reduzir(pontos, Math.max(50, Math.floor(L - m.e - m.d)));
   const caminho = desenho.map((p, i) => `${i ? "L" : "M"}${px(p[0]).toFixed(1)},${py(p[1]).toFixed(1)}`).join("");
   const base = py(Math.max(y0, Math.min(0, y1)));
-  svg.append(el("path", { svg: 1, d: `${caminho}L${px(desenho.at(-1)[0])},${base}L${px(desenho[0][0])},${base}Z`, fill: "var(--linha)", opacity: 0.08 }));
+  svg.append(el("path", { svg: 1, d: `${caminho}L${px(desenho.at(-1)[0])},${base}L${px(desenho[0][0])},${base}Z`, fill: "var(--area)", opacity: 0.35 }));
   if (y0 < 0 && y1 > 0) svg.append(el("line", { svg: 1, x1: m.e, x2: L - m.d, y1: py(0), y2: py(0), stroke: "var(--suave)", "stroke-dasharray": "3 3" }));
-  svg.append(el("path", { svg: 1, d: caminho, fill: "none", stroke: "var(--linha)", "stroke-width": 1.8, "stroke-linejoin": "round" }));
+  svg.append(el("path", { svg: 1, d: caminho, fill: "none", stroke: "var(--linha)", "stroke-width": 1.6, "stroke-linejoin": "round" }));
 
   // Interação: linha vertical + ponto + dica com data e valor.
-  const guia = el("line", { svg: 1, y1: m.c, y2: A - m.b, stroke: "var(--suave)", "stroke-dasharray": "3 3", visibility: "hidden" });
-  const ponto = el("circle", { svg: 1, r: 4, fill: "var(--linha)", stroke: "var(--painel)", "stroke-width": 2, visibility: "hidden" });
+  const guia = el("line", { svg: 1, y1: m.c, y2: A - m.b, stroke: "var(--texto)", "stroke-dasharray": "3 3", visibility: "hidden" });
+  const ponto = el("circle", { svg: 1, r: 4, fill: "var(--linha)", stroke: "var(--fundo)", "stroke-width": 2, visibility: "hidden" });
   svg.append(guia, ponto);
   const dica = $("dica");
 
