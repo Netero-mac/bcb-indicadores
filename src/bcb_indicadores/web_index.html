@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indicadores BCB</title>
+<style>
+  :root {
+    --fundo: #f6f7f9;
+    --painel: #ffffff;
+    --texto: #1b1f24;
+    --suave: #5d6673;
+    --borda: #e2e5ea;
+    --grade: #eceef2;
+    --destaque: #1f5fbf;
+    --destaque-fundo: #e8f0fc;
+    --linha: #1f5fbf;
+    --sobe: #b4441c;
+    --desce: #1d7a4a;
+    --erro: #b42318;
+    --sombra: 0 1px 2px rgb(16 24 40 / 6%);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fundo: #111418;
+      --painel: #1a1e24;
+      --texto: #e7eaee;
+      --suave: #9aa3ae;
+      --borda: #2b313a;
+      --grade: #242a31;
+      --destaque: #6ea2f0;
+      --destaque-fundo: #1d2b40;
+      --linha: #6ea2f0;
+      --sobe: #f08a5d;
+      --desce: #5cc48c;
+      --erro: #f97066;
+      --sombra: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--fundo);
+    color: var(--texto);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  header {
+    display: flex; flex-wrap: wrap; gap: 12px 24px;
+    align-items: center; justify-content: space-between; margin-bottom: 20px;
+  }
+  h1 { font-size: 22px; margin: 0; }
+  .sub { color: var(--suave); font-size: 13px; margin-top: 2px; }
+  .num { font-variant-numeric: tabular-nums; }
+  button, .botao {
+    font: inherit; font-size: 14px; cursor: pointer;
+    border: 1px solid var(--borda); background: var(--painel); color: var(--texto);
+    border-radius: 8px; padding: 7px 14px; text-decoration: none; display: inline-block;
+  }
+  button:hover, .botao:hover { border-color: var(--destaque); }
+  button:focus-visible, .botao:focus-visible, .cartao:focus-visible {
+    outline: 2px solid var(--destaque); outline-offset: 2px;
+  }
+  button.primario { background: var(--destaque); border-color: var(--destaque); color: #fff; }
+  @media (prefers-color-scheme: dark) { button.primario { color: #0d1420; } }
+  button:disabled { opacity: .6; cursor: progress; }
+  .aviso {
+    border: 1px solid var(--borda); background: var(--painel); border-radius: 10px;
+    padding: 12px 16px; margin-bottom: 16px; font-size: 14px;
+  }
+  .aviso.erro { border-color: var(--erro); color: var(--erro); }
+  .aviso ul { margin: 6px 0 0; padding-left: 20px; }
+  .cartoes {
+    display: grid; gap: 12px; margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  }
+  .cartao {
+    text-align: left; background: var(--painel); border: 1px solid var(--borda);
+    border-radius: 12px; padding: 14px 16px; box-shadow: var(--sombra); width: 100%;
+  }
+  .cartao[aria-pressed="true"] { border-color: var(--destaque); box-shadow: 0 0 0 1px var(--destaque); }
+  .cartao .nome { font-weight: 600; }
+  .cartao .unid { color: var(--suave); font-size: 12px; margin-left: 4px; font-weight: 400; }
+  .cartao .valor { font-size: 26px; font-weight: 650; margin: 6px 0 2px; }
+  .cartao .linha { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--suave); }
+  .cartao .linha b { font-weight: 500; color: var(--texto); }
+  .sobe { color: var(--sobe) !important; }
+  .desce { color: var(--desce) !important; }
+  .painel {
+    background: var(--painel); border: 1px solid var(--borda); border-radius: 12px;
+    padding: 16px; box-shadow: var(--sombra); margin-bottom: 20px;
+  }
+  .painel-topo {
+    display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center;
+    margin-bottom: 8px;
+  }
+  .painel h2 { font-size: 17px; margin: 0; }
+  .periodos { display: flex; gap: 4px; }
+  .periodos button { padding: 4px 10px; font-size: 13px; }
+  .periodos button[aria-pressed="true"] { background: var(--destaque-fundo); border-color: var(--destaque); color: var(--destaque); }
+  .faixa { color: var(--suave); font-size: 13px; margin-bottom: 8px; }
+  .grafico { position: relative; }
+  svg { display: block; width: 100%; height: 320px; }
+  svg text { fill: var(--suave); font-size: 11px; }
+  .dica {
+    position: absolute; pointer-events: none; background: var(--texto); color: var(--fundo);
+    padding: 5px 9px; border-radius: 6px; font-size: 12px; white-space: nowrap; display: none;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--grade); }
+  th { text-align: left; color: var(--suave); font-weight: 500; }
+  td.num, th.num { text-align: right; }
+  .vazio { color: var(--suave); padding: 40px 0; text-align: center; }
+  footer { color: var(--suave); font-size: 12px; text-align: center; }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Indicadores do Banco Central</h1>
+      <div class="sub" id="banco"></div>
+    </div>
+    <button class="primario" id="btn-coletar" type="button">Atualizar dados</button>
+  </header>
+
+  <div id="avisos" aria-live="polite"></div>
+  <div class="cartoes" id="cartoes"></div>
+
+  <section class="painel" id="painel-grafico" hidden>
+    <div class="painel-topo">
+      <h2 id="titulo-grafico"></h2>
+      <div class="periodos" id="periodos" role="group" aria-label="Período do gráfico">
+        <button type="button" data-anos="1">1 ano</button>
+        <button type="button" data-anos="5">5 anos</button>
+        <button type="button" data-anos="10">10 anos</button>
+        <button type="button" data-anos="0">Tudo</button>
+      </div>
+    </div>
+    <div class="faixa num" id="faixa"></div>
+    <div class="grafico" id="grafico">
+      <svg id="svg" role="img"></svg>
+      <div class="dica num" id="dica"></div>
+    </div>
+  </section>
+
+  <section class="painel" id="painel-tabela" hidden>
+    <div class="painel-topo">
+      <h2>Últimas observações</h2>
+      <a class="botao" id="btn-csv" href="#" download>Baixar CSV completo</a>
+    </div>
+    <table>
+      <thead><tr><th>Data</th><th class="num" id="th-valor">Valor</th></tr></thead>
+      <tbody id="tabela"></tbody>
+    </table>
+  </section>
+
+  <footer>Fonte: Banco Central do Brasil — <a href="https://dadosabertos.bcb.gov.br/" target="_blank" rel="noopener">SGS</a></footer>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const estado = { resumo: null, apelido: null, anos: 5, cache: {} };
+
+try { estado.apelido = localStorage.getItem("serie"); } catch {}
+try { estado.anos = Number(localStorage.getItem("anos") ?? 5); } catch {}
+
+// ---------- utilidades ----------
+function formatar(valor, casas) {
+  return valor.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
+}
+function dataBr(ms, mensal) {
+  const d = new Date(ms);
+  const dia = String(d.getUTCDate()).padStart(2, "0");
+  const mes = String(d.getUTCMonth() + 1).padStart(2, "0");
+  return mensal ? `${mes}/${d.getUTCFullYear()}` : `${dia}/${mes}/${d.getUTCFullYear()}`;
+}
+function paraMs(iso) {
+  const [a, m, d] = iso.split("-").map(Number);
+  return Date.UTC(a, m - 1, d);
+}
+function el(tag, attrs = {}, texto) {
+  const e = document.createElementNS(tag === "svg" || attrs.svg ? "http://www.w3.org/2000/svg" : "http://www.w3.org/1999/xhtml", tag);
+  for (const [k, v] of Object.entries(attrs)) if (k !== "svg") e.setAttribute(k, v);
+  if (texto !== undefined) e.textContent = texto;
+  return e;
+}
+async function api(url, opcoes) {
+  const r = await fetch(url, opcoes);
+  const dados = await r.json();
+  if (!r.ok) throw new Error(dados.erro || `HTTP ${r.status}`);
+  return dados;
+}
+function aviso(html, erro = false) {
+  $("avisos").innerHTML = html ? `<div class="aviso${erro ? " erro" : ""}">${html}</div>` : "";
+}
+function escapar(t) {
+  return String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+}
+
+// ---------- resumo e cartões ----------
+async function carregarResumo() {
+  estado.resumo = await api("/api/resumo");
+  $("banco").textContent = `Banco: ${estado.resumo.banco}`;
+  const series = estado.resumo.series;
+  const comDados = series.filter((s) => s.ultima);
+
+  if (!comDados.length) {
+    aviso("O banco ainda está vazio. Clique em <b>Atualizar dados</b> para baixar o histórico desde 2000 (leva cerca de um minuto).");
+  }
+  if (!comDados.some((s) => s.apelido === estado.apelido)) {
+    estado.apelido = comDados[0]?.apelido ?? null;
+  }
+
+  const cartoes = $("cartoes");
+  cartoes.replaceChildren();
+  for (const s of series) {
+    const b = el("button", { type: "button", class: "cartao", "aria-pressed": String(s.apelido === estado.apelido) });
+    let corpo = `<div class="nome">${escapar(s.nome)}<span class="unid">${escapar(s.unidade)}</span></div>`;
+    if (s.ultima) {
+      const classe = s.sinal_variacao > 0 ? "sobe" : s.sinal_variacao < 0 ? "desce" : "";
+      const seta = s.sinal_variacao > 0 ? "▲ " : s.sinal_variacao < 0 ? "▼ " : "";
+      corpo += `<div class="valor num">${escapar(s.ultima.valor_br)}</div>
+        <div class="linha"><span>em ${escapar(s.ultima.data_br)}</span></div>
+        <div class="linha"><span>Var. 12 meses</span><b class="num ${classe}">${s.variacao_12m ? seta + escapar(s.variacao_12m) : "—"}</b></div>
+        <div class="linha"><span>Média 12 meses</span><b class="num">${escapar(s.media_12m)}</b></div>`;
+    } else {
+      corpo += `<div class="valor">—</div><div class="linha"><span>Sem dados</span></div>`;
+      b.disabled = true;
+    }
+    b.innerHTML = corpo;
+    b.addEventListener("click", () => selecionar(s.apelido));
+    cartoes.append(b);
+  }
+
+  $("painel-grafico").hidden = $("painel-tabela").hidden = !estado.apelido;
+  if (estado.apelido) await selecionar(estado.apelido, true);
+}
+
+// ---------- série selecionada ----------
+async function selecionar(apelido, recarregar = false) {
+  estado.apelido = apelido;
+  try { localStorage.setItem("serie", apelido); } catch {}
+  const s = estado.resumo.series.find((x) => x.apelido === apelido);
+  [...$("cartoes").children].forEach((c, i) =>
+    c.setAttribute("aria-pressed", String(estado.resumo.series[i].apelido === apelido)));
+
+  if (recarregar || !estado.cache[apelido]) {
+    const dados = await api(`/api/series/${apelido}`);
+    estado.cache[apelido] = dados.observacoes.map(([d, v]) => [paraMs(d), Number(v)]);
+  }
+  const pontos = estado.cache[apelido];
+  $("titulo-grafico").textContent = `${s.nome} (${s.unidade})`;
+  $("th-valor").textContent = `Valor (${s.unidade})`;
+  $("btn-csv").href = `/api/series/${apelido}.csv`;
+  $("btn-csv").setAttribute("download", `${apelido}.csv`);
+
+  const tbody = $("tabela");
+  tbody.replaceChildren();
+  const mensal = s.periodicidade === "mensal";
+  for (const [ms, v] of pontos.slice(-15).reverse()) {
+    const tr = el("tr");
+    tr.append(el("td", { class: "num" }, dataBr(ms, mensal)), el("td", { class: "num" }, formatar(v, s.casas)));
+    tbody.append(tr);
+  }
+  desenhar();
+}
+
+// ---------- gráfico (SVG feito à mão, sem bibliotecas) ----------
+function ticksBonitos(min, max, quantidade) {
+  if (min === max) { min -= 1; max += 1; }
+  const bruto = (max - min) / quantidade;
+  const mag = 10 ** Math.floor(Math.log10(bruto));
+  const passo = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((p) => p >= bruto);
+  const inicio = Math.floor(min / passo) * passo;
+  const fim = Math.ceil(max / passo) * passo;
+  const ticks = [];
+  for (let t = inicio; t <= fim + passo / 2; t += passo) ticks.push(Number(t.toFixed(10)));
+  return { ticks, casas: Math.max(0, -Math.floor(Math.log10(passo) + 1e-9)) };
+}
+
+function reduzir(pontos, baldes) {
+  // Mantém mínimo e máximo de cada faixa de pixels: o desenho fica fiel e leve.
+  if (pontos.length <= baldes * 2) return pontos;
+  const tam = pontos.length / baldes, saida = [];
+  for (let b = 0; b < baldes; b++) {
+    const fatia = pontos.slice(Math.floor(b * tam), Math.floor((b + 1) * tam));
+    if (!fatia.length) continue;
+    let mi = fatia[0], ma = fatia[0];
+    for (const p of fatia) { if (p[1] < mi[1]) mi = p; if (p[1] > ma[1]) ma = p; }
+    if (mi === ma) saida.push(mi); else saida.push(...(mi[0] < ma[0] ? [mi, ma] : [ma, mi]));
+  }
+  return saida;
+}
+
+function desenhar() {
+  const s = estado.resumo.series.find((x) => x.apelido === estado.apelido);
+  const todos = estado.cache[estado.apelido] || [];
+  [...$("periodos").children].forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.anos) === estado.anos)));
+
+  const svg = $("svg");
+  svg.replaceChildren();
+  if (!todos.length) return;
+
+  const ultimo = todos[todos.length - 1][0];
+  let corte = -Infinity;
+  if (estado.anos) {
+    const d = new Date(ultimo);
+    corte = Date.UTC(d.getUTCFullYear() - estado.anos, d.getUTCMonth(), d.getUTCDate());
+  }
+  const pontos = todos.filter((p) => p[0] >= corte);
+  const mensal = s.periodicidade === "mensal";
+
+  const valores = pontos.map((p) => p[1]);
+  const mi = Math.min(...valores), ma = Math.max(...valores);
+  const iMi = valores.indexOf(mi), iMa = valores.indexOf(ma);
+  $("faixa").textContent =
+    `${dataBr(pontos[0][0], mensal)} a ${dataBr(ultimo, mensal)} · ` +
+    `mínimo ${formatar(mi, s.casas)} (${dataBr(pontos[iMi][0], mensal)}) · ` +
+    `máximo ${formatar(ma, s.casas)} (${dataBr(pontos[iMa][0], mensal)})`;
+
+  const L = svg.clientWidth, A = svg.clientHeight;
+  const m = { e: 58, d: 12, c: 10, b: 26 };
+  const { ticks, casas } = ticksBonitos(mi, ma, 5);
+  const y0 = ticks[0], y1 = ticks[ticks.length - 1];
+  const x0 = pontos[0][0], x1 = Math.max(ultimo, x0 + 1);
+  const px = (t) => m.e + ((t - x0) / (x1 - x0)) * (L - m.e - m.d);
+  const py = (v) => A - m.b - ((v - y0) / (y1 - y0)) * (A - m.c - m.b);
+  svg.setAttribute("viewBox", `0 0 ${L} ${A}`);
+  svg.setAttribute("aria-label", `Gráfico de ${s.nome}`);
+
+  for (const t of ticks) {
+    svg.append(el("line", { svg: 1, x1: m.e, x2: L - m.d, y1: py(t), y2: py(t), stroke: "var(--grade)" }));
+    svg.append(el("text", { svg: 1, x: m.e - 8, y: py(t) + 4, "text-anchor": "end", class: "num" }, formatar(t, casas)));
+  }
+
+  // Eixo X: anos (ou meses, em períodos curtos), no máximo ~8 rótulos.
+  const anoIni = new Date(x0).getUTCFullYear(), anoFim = new Date(x1).getUTCFullYear();
+  const marcas = [];
+  if (anoFim - anoIni >= 2) {
+    const passo = Math.ceil((anoFim - anoIni + 1) / 8);
+    for (let a = anoIni + 1; a <= anoFim; a += passo) marcas.push([Date.UTC(a, 0, 1), String(a)]);
+  } else {
+    const meses = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+    const d = new Date(x0);
+    for (let k = 1; k <= 26; k += 2) {
+      const t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + k, 1);
+      if (t > x1) break;
+      const dt = new Date(t);
+      marcas.push([t, `${meses[dt.getUTCMonth()]}/${String(dt.getUTCFullYear()).slice(2)}`]);
+    }
+  }
+  for (const [t, rotulo] of marcas) {
+    svg.append(el("line", { svg: 1, x1: px(t), x2: px(t), y1: A - m.b, y2: A - m.b + 4, stroke: "var(--suave)" }));
+    svg.append(el("text", { svg: 1, x: px(t), y: A - 8, "text-anchor": "middle" }, rotulo));
+  }
+
+  const desenho = reduzir(pontos, Math.max(50, Math.floor(L - m.e - m.d)));
+  const caminho = desenho.map((p, i) => `${i ? "L" : "M"}${px(p[0]).toFixed(1)},${py(p[1]).toFixed(1)}`).join("");
+  const base = py(Math.max(y0, Math.min(0, y1)));
+  svg.append(el("path", { svg: 1, d: `${caminho}L${px(desenho.at(-1)[0])},${base}L${px(desenho[0][0])},${base}Z`, fill: "var(--linha)", opacity: 0.08 }));
+  if (y0 < 0 && y1 > 0) svg.append(el("line", { svg: 1, x1: m.e, x2: L - m.d, y1: py(0), y2: py(0), stroke: "var(--suave)", "stroke-dasharray": "3 3" }));
+  svg.append(el("path", { svg: 1, d: caminho, fill: "none", stroke: "var(--linha)", "stroke-width": 1.8, "stroke-linejoin": "round" }));
+
+  // Interação: linha vertical + ponto + dica com data e valor.
+  const guia = el("line", { svg: 1, y1: m.c, y2: A - m.b, stroke: "var(--suave)", "stroke-dasharray": "3 3", visibility: "hidden" });
+  const ponto = el("circle", { svg: 1, r: 4, fill: "var(--linha)", stroke: "var(--painel)", "stroke-width": 2, visibility: "hidden" });
+  svg.append(guia, ponto);
+  const dica = $("dica");
+
+  function mover(ev) {
+    const r = svg.getBoundingClientRect();
+    const x = ev.clientX - r.left;
+    const t = x0 + ((x - m.e) / (L - m.e - m.d)) * (x1 - x0);
+    let lo = 0, hi = pontos.length - 1;
+    while (lo < hi) { const meio = (lo + hi) >> 1; if (pontos[meio][0] < t) lo = meio + 1; else hi = meio; }
+    if (lo > 0 && t - pontos[lo - 1][0] < pontos[lo][0] - t) lo--;
+    const [pt, pv] = pontos[lo];
+    const cx = px(pt), cy = py(pv);
+    guia.setAttribute("x1", cx); guia.setAttribute("x2", cx);
+    ponto.setAttribute("cx", cx); ponto.setAttribute("cy", cy);
+    guia.setAttribute("visibility", "visible"); ponto.setAttribute("visibility", "visible");
+    dica.textContent = `${dataBr(pt, mensal)} · ${formatar(pv, s.casas)} ${s.unidade}`;
+    dica.style.display = "block";
+    const largura = dica.offsetWidth;
+    dica.style.left = `${Math.min(Math.max(cx - largura / 2, 0), L - largura)}px`;
+    dica.style.top = `${Math.max(cy - 38, 0)}px`;
+  }
+  function esconder() {
+    guia.setAttribute("visibility", "hidden"); ponto.setAttribute("visibility", "hidden");
+    dica.style.display = "none";
+  }
+  svg.onpointermove = mover;
+  svg.onpointerleave = esconder;
+}
+
+// ---------- ações ----------
+$("periodos").addEventListener("click", (ev) => {
+  const b = ev.target.closest("button");
+  if (!b) return;
+  estado.anos = Number(b.dataset.anos);
+  try { localStorage.setItem("anos", String(estado.anos)); } catch {}
+  desenhar();
+});
+
+$("btn-coletar").addEventListener("click", async () => {
+  const botao = $("btn-coletar");
+  botao.disabled = true;
+  botao.textContent = "Atualizando…";
+  aviso("Baixando dados novos da API do Banco Central…");
+  try {
+    const { resultados } = await api("/api/coletar", { method: "POST", headers: { "X-BCB-Indicadores": "1" } });
+    const erros = resultados.filter((r) => r.erro);
+    const novos = resultados.reduce((t, r) => t + (r.inseridos || 0), 0);
+    const atualizados = resultados.reduce((t, r) => t + (r.atualizados || 0), 0);
+    let html = `Dados atualizados: ${novos} observações novas, ${atualizados} revisadas.`;
+    if (erros.length) html += `<ul>${erros.map((r) => `<li>${escapar(r.nome)}: ${escapar(r.erro)}</li>`).join("")}</ul>`;
+    estado.cache = {};
+    await carregarResumo();
+    aviso(html, erros.length > 0);
+  } catch (e) {
+    aviso(`Não foi possível atualizar: ${escapar(e.message)}`, true);
+  } finally {
+    botao.disabled = false;
+    botao.textContent = "Atualizar dados";
+  }
+});
+
+let espera;
+window.addEventListener("resize", () => { clearTimeout(espera); espera = setTimeout(() => estado.apelido && desenhar(), 120); });
+
+carregarResumo().catch((e) => aviso(`Erro ao carregar os dados: ${escapar(e.message)}`, true));
+</script>
+</body>
+</html>

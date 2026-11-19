@@ -5,6 +5,7 @@ Uso:
     bcb-indicadores ultimos <série> [--n 10]
     bcb-indicadores resumo
     bcb-indicadores exportar <série> --csv arquivo.csv
+    bcb-indicadores web [--porta 8000] [--nao-abrir]
 """
 
 from __future__ import annotations
@@ -61,6 +62,16 @@ def _tipo_positivo(texto: str) -> int:
     return numero
 
 
+def _tipo_porta(texto: str) -> int:
+    try:
+        porta = int(texto)
+    except ValueError:
+        porta = -1
+    if not 0 <= porta <= 65535:
+        raise argparse.ArgumentTypeError(f"porta inválida {texto!r}; use um número de 0 a 65535")
+    return porta
+
+
 def criar_parser() -> argparse.ArgumentParser:
     apelidos = ", ".join(f"{s.apelido} ({s.codigo})" for s in SERIES)
     parser = argparse.ArgumentParser(
@@ -110,6 +121,13 @@ def criar_parser() -> argparse.ArgumentParser:
     p.add_argument("serie", type=_tipo_serie, metavar="SÉRIE", help="apelido ou código da série")
     p.add_argument("--csv", type=Path, required=True, metavar="ARQUIVO", help="arquivo de saída")
     p.set_defaults(funcao=cmd_exportar)
+
+    p = sub.add_parser("web", help="abre uma interface no navegador para ver os dados")
+    p.add_argument(
+        "--porta", type=_tipo_porta, default=8000, help="porta local do servidor (padrão: 8000)"
+    )
+    p.add_argument("--nao-abrir", action="store_true", help="não abre o navegador automaticamente")
+    p.set_defaults(funcao=cmd_web)
 
     return parser
 
@@ -203,6 +221,18 @@ def cmd_exportar(args: argparse.Namespace, _cliente: Cliente | None) -> int:
         escritor.writerows((o.data.isoformat(), str(o.valor)) for o in observacoes)
 
     print(f"{len(observacoes)} linhas de {serie.nome} exportadas para {args.csv}")
+    return OK
+
+
+def cmd_web(args: argparse.Namespace, cliente: Cliente | None) -> int:
+    from bcb_indicadores import web  # importado só aqui: os outros comandos não precisam
+
+    try:
+        web.servir(args.banco, args.porta, abrir_navegador=not args.nao_abrir, cliente=cliente)
+    except OSError as erro:
+        print(f"Não foi possível iniciar o servidor na porta {args.porta}: {erro}", file=sys.stderr)
+        print("Tente outra porta, por exemplo: bcb-indicadores web --porta 8080", file=sys.stderr)
+        return ERRO
     return OK
 
 

@@ -6,7 +6,7 @@
 
 Ferramenta de linha de comando que coleta indicadores econômicos da
 [API SGS do Banco Central do Brasil](https://dadosabertos.bcb.gov.br/), guarda
-os dados em SQLite e mostra relatórios no terminal.
+os dados em SQLite e mostra relatórios no terminal ou numa interface no navegador.
 
 | Série            | Código SGS | Apelido na CLI | Unidade | Periodicidade |
 | ---------------- | ---------: | -------------- | ------- | ------------- |
@@ -21,8 +21,9 @@ os dados em SQLite e mostra relatórios no terminal.
 - Respeita o limite da API de **10 anos por consulta** em séries diárias, dividindo o período em janelas.
 - Cliente HTTP com **timeout e retentativas** com espera crescente (backoff).
 - Valores tratados com `Decimal`, sem erros de arredondamento de ponto flutuante.
+- **Interface web local** (`bcb-indicadores web`) com cartões, gráficos interativos e download em CSV.
 - Uma única dependência externa (`requests`); banco com `sqlite3` da biblioteca padrão.
-- **103 testes** com pytest, que rodam **sem internet**, usando respostas reais gravadas da API.
+- **118 testes** com pytest, que rodam **sem internet**, usando respostas reais gravadas da API.
 - CI no GitHub Actions: ruff + pytest no Linux e no Windows a cada push.
 
 ## Instalação
@@ -65,6 +66,7 @@ bcb-indicadores [--banco ARQUIVO] [-v] COMANDO
   ultimos   SÉRIE [--n 10]
   resumo
   exportar  SÉRIE --csv ARQUIVO
+  web       [--porta 8000] [--nao-abrir]
 ```
 
 A série pode ser informada pelo apelido (`selic`) ou pelo código (`432`). O banco
@@ -159,6 +161,28 @@ data,valor
 2000-01-04,1.8337
 ```
 
+### `web`: interface no navegador
+
+Para ver os dados sem usar o terminal:
+
+```console
+$ bcb-indicadores web
+Interface disponível em http://127.0.0.1:8000/
+Pressione Ctrl+C para encerrar.
+```
+
+O navegador abre sozinho com:
+
+- um **cartão por série** com último valor, variação e média de 12 meses (os mesmos números do `resumo`);
+- **gráfico** da série escolhida, com períodos de 1, 5 ou 10 anos ou o histórico todo, e data e valor ao passar o mouse;
+- tabela com as **últimas observações** e botão para **baixar o CSV**;
+- botão **Atualizar dados**, que faz a mesma coisa que o `coletar` (com o banco vazio, baixa o histórico desde 2000).
+
+O servidor usa só a biblioteca padrão (`http.server`), escuta apenas em `127.0.0.1`
+(não fica acessível para outros computadores da rede) e funciona sem internet para
+consultar o que já está no banco. O gráfico é desenhado em SVG, sem bibliotecas
+externas. Se a porta 8000 estiver ocupada, use `--porta 8080`.
+
 ### Erros amigáveis
 
 ```console
@@ -170,7 +194,7 @@ bcb-indicadores ultimos: error: argument SÉRIE: Série desconhecida: 'euro'. Op
 ## Testes e qualidade
 
 ```bash
-pytest               # 103 testes, sem acesso à internet
+pytest               # 118 testes, sem acesso à internet
 ruff check .         # lint
 ruff format --check .
 ```
@@ -187,6 +211,8 @@ com `unittest.mock` ou substituído por um cliente falso. Eles cobrem:
   29 de fevereiro, histórico menor que 12 meses, divisão por zero.
 - **Janelas**: cobertura completa do período sem buracos nem sobreposição.
 - **CLI** de ponta a ponta, com banco temporário.
+- **Interface web**: todas as rotas com um servidor real numa porta livre, CSV, coleta pelo botão,
+  bloqueio de coletas simultâneas e de requisições de outros sites.
 
 ## Decisões técnicas
 
@@ -240,6 +266,8 @@ bcb-indicadores/
 │   ├── coleta.py               # janelas de 10 anos e coleta incremental
 │   ├── relatorios.py           # cálculos do resumo (funções puras)
 │   ├── formatacao.py           # números/datas no padrão brasileiro e tabelas
+│   ├── web.py                  # servidor da interface web (http.server)
+│   ├── web_index.html          # página da interface (HTML, CSS e JS sem dependências)
 │   └── datas.py                # aritmética de datas (ex.: 29/02 menos 1 ano)
 ├── tests/
 │   ├── fixtures/               # respostas reais gravadas da API
@@ -249,7 +277,8 @@ bcb-indicadores/
 │   ├── test_coleta.py
 │   ├── test_relatorios.py
 │   ├── test_formatacao.py
-│   └── test_cli.py
+│   ├── test_cli.py
+│   └── test_web.py
 ├── pyproject.toml              # metadados, dependências, pytest e ruff
 └── README.md
 ```
@@ -258,7 +287,7 @@ bcb-indicadores/
 
 - IPCA acumulado em 12 meses (produto de `1 + taxa/100`), mais útil que a média mensal.
 - Opção `--formato excel` no CSV (ponto e vírgula e vírgula decimal).
-- Gráficos no terminal ou exportação para Parquet.
+- Exportação para Parquet.
 - Agendamento diário da coleta (cron ou Agendador de Tarefas do Windows).
 
 ## Fonte dos dados
