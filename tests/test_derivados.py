@@ -7,9 +7,10 @@ import pytest
 
 from bcb_indicadores import banco
 from bcb_indicadores.relatorios import (
+    PRECISAO_DERIVADOS,
     acumulado,
+    acumulado_12m,
     derivadas_do_banco,
-    ipca_12m,
     juro_real,
     juro_real_mensal,
     resumos_derivados,
@@ -57,26 +58,26 @@ def test_ultimo_dia_do_mes(dia, esperado):
 
 
 def test_ipca_12m_precisa_de_12_meses():
-    assert ipca_12m(mensal(2025, 1, ["0.5"] * 11)) == []
+    assert acumulado_12m(mensal(2025, 1, ["0.5"] * 11)) == []
 
 
 def test_ipca_12m_janela_movel():
     serie = mensal(2025, 1, ["1"] * 12 + ["0"])
-    resultado = ipca_12m(serie)
+    resultado = acumulado_12m(serie)
     assert [o.data for o in resultado] == [date(2025, 12, 1), date(2026, 1, 1)]
-    assert resultado[0].valor == acumulado([Decimal(1)] * 12)
-    assert resultado[1].valor == acumulado([Decimal(1)] * 11)
+    assert resultado[0].valor == Decimal("12.682503")  # composto: 1,01^12 - 1
+    assert resultado[1].valor == acumulado([Decimal(1)] * 11).quantize(PRECISAO_DERIVADOS)
 
 
 def test_ipca_12m_atravessa_a_virada_do_ano():
-    resultado = ipca_12m(mensal(2025, 11, ["0.1"] * 12))
+    resultado = acumulado_12m(mensal(2025, 11, ["0.1"] * 12))
     assert [o.data for o in resultado] == [date(2026, 10, 1)]
 
 
 def test_ipca_12m_pula_janelas_com_mes_faltando():
     serie = mensal(2025, 1, ["1"] * 14)
     del serie[5]  # some junho/2025: nenhuma janela de 12 meses fica completa
-    assert ipca_12m(serie) == []
+    assert acumulado_12m(serie) == []
 
 
 def test_juro_real_usa_selic_do_fim_do_mes_e_acrescenta_o_ponto_de_hoje():
@@ -87,11 +88,14 @@ def test_juro_real_usa_selic_do_fim_do_mes_e_acrescenta_o_ponto_de_hoje():
         obs("2026-10-31", "13"),  # vigente no fim de outubro
         obs("2026-11-19", "12"),  # mais recente que o último IPCA
     ]
-    resultado = juro_real_mensal(selic, ipca)
-    assert resultado == [
-        obs("2026-09-01", str(juro_real(Decimal(14), Decimal(5)))),
-        obs("2026-10-01", str(juro_real(Decimal(13), Decimal(4)))),
-        obs("2026-11-19", str(juro_real(Decimal(12), Decimal(4)))),
+
+    def esperado(selic, inflacao):
+        return str(juro_real(Decimal(selic), Decimal(inflacao)).quantize(PRECISAO_DERIVADOS))
+
+    assert juro_real_mensal(selic, ipca) == [
+        obs("2026-09-01", esperado(14, 5)),
+        obs("2026-10-01", esperado(13, 4)),
+        obs("2026-11-19", esperado(12, 4)),
     ]
 
 
@@ -121,5 +125,5 @@ def test_derivadas_do_banco(conexao):
 
 def test_resumos_derivados_com_banco_vazio(conexao):
     resumos = resumos_derivados(conexao)
-    assert [r.serie.apelido for r in resumos] == ["ipca12m", "juroreal"]
+    assert [r.serie.apelido for r in resumos] == ["ipca12m", "igpm12m", "juroreal"]
     assert all(r.ultima is None for r in resumos)

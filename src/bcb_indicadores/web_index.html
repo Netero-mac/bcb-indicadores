@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Indicadores BCB</title>
+<!-- modo -->
 <style>
   /* Paleta: Midnight Black #030407 · Electric Cobalt Blue #1558C9 · Acid Lime #D4FF24 */
   :root {
@@ -12,11 +13,13 @@
     --cobalto: #1558C9;
     --lima: #D4FF24;
     --fundo: var(--preto);
+    --elevado: #0B0D12;
     --texto: #EDEEE8;
     --suave: #8B8F98;
     --fio: #23262D;
     --grade: #15181E;
     --linha: var(--lima);
+    --linha-2: var(--texto);
     --area: var(--cobalto);
     --erro: #FF6B5A;
     --serifa: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
@@ -31,16 +34,15 @@
   }
   ::selection { background: var(--lima); color: var(--preto); }
   main { max-width: 1180px; margin: 0 auto; padding: 40px 16px 56px; }
+  [hidden] { display: none !important; }
 
   /* Cabeçalho */
   header {
     display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: flex-end; justify-content: space-between;
-    padding-bottom: 24px; border-bottom: 1px solid var(--texto); margin-bottom: 0;
+    padding-bottom: 24px; border-bottom: 1px solid var(--texto);
   }
   .rotulo { font: 500 11px/1.4 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--suave); }
-  h1 {
-    font: 400 clamp(40px, 7vw, 76px)/0.95 var(--serifa); letter-spacing: -0.02em; margin: 10px 0 0;
-  }
+  h1 { font: 400 clamp(40px, 7vw, 76px)/0.95 var(--serifa); letter-spacing: -0.02em; margin: 10px 0 0; }
   h1 em { font-style: italic; color: var(--lima); }
   .sub { color: var(--suave); font-size: 11px; margin-top: 14px; word-break: break-all; }
   .num { font-variant-numeric: tabular-nums; }
@@ -51,68 +53,89 @@
     border-radius: 0; padding: 12px 18px; text-decoration: none; display: inline-block;
   }
   button:hover, .botao:hover { background: var(--texto); color: var(--preto); }
-  button:focus-visible, .botao:focus-visible { outline: 2px solid var(--lima); outline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--lima); outline-offset: 3px; }
   button.primario { background: var(--lima); border-color: var(--lima); color: var(--preto); }
   button.primario:hover { background: var(--texto); border-color: var(--texto); }
   button:disabled { opacity: .55; cursor: progress; }
 
+  input, select {
+    font: 500 13px/1 var(--mono); color: var(--texto); background: var(--fundo);
+    border: 1px solid var(--fio); border-radius: 0; padding: 9px 10px; min-width: 0;
+  }
+  input:hover, select:hover { border-color: var(--suave); }
+  input:focus, select:focus { outline: none; border-color: var(--lima); }
+  label { display: flex; flex-direction: column; gap: 6px; font: 500 10px/1.2 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--suave); }
+
   /* Avisos */
-  .aviso { border-left: 3px solid var(--lima); padding: 12px 16px; margin: 20px 0 0; background: #0B0D12; }
+  .aviso { border-left: 3px solid var(--lima); padding: 12px 16px; margin: 20px 0 0; background: var(--elevado); }
   .aviso.erro { border-left-color: var(--erro); color: var(--erro); }
   .aviso ul { margin: 6px 0 0; padding-left: 20px; }
 
-  /* Faixa de séries: fios finos entre as colunas, sem caixas arredondadas */
+  /* Grupos de cartões: fios finos entre as colunas, sem caixas arredondadas */
+  #grupos { margin: 0 0 40px; }
+  .grupo > .rotulo { padding: 22px 0 10px; }
   .cartoes {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 1px; background: var(--fio); border-bottom: 1px solid var(--fio); margin: 0 0 40px;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 1px; background: var(--fio); border-top: 1px solid var(--fio); border-bottom: 1px solid var(--fio);
   }
   .cartao {
-    text-align: left; background: var(--fundo); border: 0; padding: 20px 20px 22px;
+    text-align: left; background: var(--fundo); border: 0; padding: 18px 18px 20px;
     text-transform: none; letter-spacing: 0; font: inherit; width: 100%; color: var(--texto);
     transition: background .15s;
   }
-  .cartao:hover { background: #0B0D12; color: var(--texto); }
+  .cartao:hover { background: var(--elevado); color: var(--texto); }
   .cartao[aria-pressed="true"] { background: var(--cobalto); }
   .cartao:disabled { cursor: default; opacity: .5; }
-  .cartao .nome { font: 400 22px/1.15 var(--serifa); display: block; }
+  .cartao .nome { font: 400 20px/1.15 var(--serifa); display: block; }
   .cartao .unid { display: block; font: 500 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--suave); margin-top: 6px; }
   .cartao[aria-pressed="true"] .unid,
   .cartao[aria-pressed="true"] .linha { color: rgb(255 255 255 / 72%); }
-  .cartao .valor { font: 500 36px/1 var(--mono); letter-spacing: -0.03em; margin: 22px 0 14px; }
-  .cartao .linha {
-    display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--suave);
-    padding-top: 6px;
-  }
-  .cartao .linha b { font-weight: 500; color: var(--texto); }
+  .cartao .valor { font: 500 30px/1 var(--mono); letter-spacing: -0.03em; margin: 18px 0 12px; }
+  .cartao .linha { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--suave); padding-top: 5px; }
+  .cartao .linha b { font-weight: 500; color: var(--texto); text-align: right; }
   .cartao[aria-pressed="true"] .linha b { color: #fff; }
-  .sobe, .desce { color: inherit; }
 
   /* Painéis */
-  .painel { margin-bottom: 48px; }
+  .painel { margin-bottom: 56px; }
   .painel-topo {
     display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: baseline;
     border-bottom: 1px solid var(--fio); padding-bottom: 12px; margin-bottom: 14px;
   }
   .painel h2 { font: 400 30px/1.1 var(--serifa); margin: 0; }
   .painel h2 small { font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--suave); margin-left: 10px; }
-  .periodos { display: flex; gap: 0; }
-  .periodos button { padding: 8px 12px; border-color: var(--fio); margin-left: -1px; }
+  .descricao { color: var(--suave); font-size: 12px; max-width: 760px; margin: 0 0 14px; }
+  .descricao:empty { display: none; }
+
+  .controles { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: flex-end; margin-bottom: 16px; }
+  .periodos { display: flex; }
+  .periodos button { padding: 9px 12px; border-color: var(--fio); margin-left: -1px; }
+  .periodos button:first-child { margin-left: 0; }
   .periodos button[aria-pressed="true"] { background: var(--lima); border-color: var(--lima); color: var(--preto); position: relative; }
+  .datas { display: flex; gap: 8px; }
+  .legenda { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 12px; color: var(--suave); margin-bottom: 8px; }
+  .legenda i { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; }
   .faixa { color: var(--suave); font-size: 12px; margin-bottom: 12px; }
   .grafico { position: relative; }
-  svg { display: block; width: 100%; height: 360px; }
+  svg { display: block; width: 100%; height: 360px; touch-action: pan-y; }
   svg text { fill: var(--suave); font: 11px var(--mono); }
   .dica {
     position: absolute; pointer-events: none; background: var(--lima); color: var(--preto);
-    padding: 6px 10px; font: 500 12px/1.2 var(--mono); white-space: nowrap; display: none;
+    padding: 6px 10px; font: 500 12px/1.4 var(--mono); white-space: pre; display: none;
   }
 
-  /* Tabela */
+  /* Tabelas */
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { padding: 9px 0; border-bottom: 1px solid var(--grade); }
   th { text-align: left; color: var(--suave); font-weight: 500; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
-  td.num, th.num { text-align: right; }
-  tbody tr:first-child td { color: var(--lima); }
+  td.num, th.num { text-align: right; padding-left: 12px; }
+  #tabela tr:first-child td { color: var(--lima); }
+  .acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* Simulador */
+  .sim-form { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .sim-destaque td { color: var(--lima); }
+  .sim-destaque td:first-child { color: var(--texto); }
+  #sim-notas { margin-top: 14px; }
 
   footer {
     display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px;
@@ -122,14 +145,17 @@
   footer a { color: var(--texto); text-underline-offset: 3px; }
   footer a:hover { color: var(--lima); }
 
-  .descricao { color: var(--suave); font-size: 12px; max-width: 760px; margin: -4px 0 12px; }
-  .descricao:empty { display: none; }
-  @media (max-width: 900px) { .cartoes { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 960px) {
+    .cartoes { grid-template-columns: repeat(2, 1fr); }
+    .sim-form { grid-template-columns: repeat(2, 1fr); }
+  }
   @media (max-width: 600px) {
-    .cartoes { grid-template-columns: 1fr; }
     main { padding-top: 28px; }
     header { align-items: flex-start; flex-direction: column; }
+    .cartoes, .sim-form { grid-template-columns: 1fr; }
     .painel h2 small { display: block; margin: 6px 0 0; }
+    .datas { width: 100%; }
+    .datas label { flex: 1; }
     svg { height: 280px; }
   }
 </style>
@@ -146,19 +172,27 @@
   </header>
 
   <div id="avisos" aria-live="polite"></div>
-  <div class="cartoes" id="cartoes"></div>
+  <div id="grupos"></div>
 
   <section class="painel" id="painel-grafico" hidden>
     <div class="painel-topo">
       <h2 id="titulo-grafico"></h2>
+    </div>
+    <p class="descricao" id="descricao"></p>
+    <div class="controles">
       <div class="periodos" id="periodos" role="group" aria-label="Período do gráfico">
         <button type="button" data-anos="1">1 ano</button>
         <button type="button" data-anos="5">5 anos</button>
         <button type="button" data-anos="10">10 anos</button>
         <button type="button" data-anos="0">Tudo</button>
       </div>
+      <div class="datas">
+        <label>De<input type="date" id="de"></label>
+        <label>Até<input type="date" id="ate"></label>
+      </div>
+      <label>Comparar com<select id="comparar"><option value="">Nenhuma</option></select></label>
     </div>
-    <p class="descricao" id="descricao"></p>
+    <div class="legenda" id="legenda"></div>
     <div class="faixa num" id="faixa"></div>
     <div class="grafico" id="grafico">
       <svg id="svg" role="img"></svg>
@@ -168,8 +202,11 @@
 
   <section class="painel" id="painel-tabela" hidden>
     <div class="painel-topo">
-      <h2>Últimas observações</h2>
-      <a class="botao" id="btn-csv" href="#" download>Baixar CSV completo</a>
+      <h2>Observações<small id="contagem"></small></h2>
+      <div class="acoes">
+        <button type="button" id="btn-csv-periodo">CSV do período</button>
+        <a class="botao" id="btn-csv" href="#" download>CSV completo</a>
+      </div>
     </div>
     <table>
       <thead><tr><th>Data</th><th class="num" id="th-valor">Valor</th></tr></thead>
@@ -177,36 +214,75 @@
     </table>
   </section>
 
+  <section class="painel" id="painel-simulador" hidden>
+    <div class="painel-topo">
+      <h2>Simulador<small>quanto rendeu uma aplicação</small></h2>
+    </div>
+    <form class="sim-form" id="sim" onsubmit="return false">
+      <label>Valor aplicado (R$)<input id="sim-valor" inputmode="decimal" value="10.000,00" autocomplete="off"></label>
+      <label>% do CDI<input id="sim-pct" type="number" min="1" max="300" step="1" value="100"></label>
+      <label>Aplicado em<input type="date" id="sim-de"></label>
+      <label>Resgatado em<input type="date" id="sim-ate"></label>
+    </form>
+    <table>
+      <thead><tr><th>Aplicação</th><th class="num">Valor final</th><th class="num">Rendimento</th><th class="num">Ganho real</th></tr></thead>
+      <tbody id="sim-tabela"></tbody>
+    </table>
+    <p class="descricao" id="sim-notas"></p>
+  </section>
+
   <footer><span>Fonte: Banco Central do Brasil</span><a href="https://dadosabertos.bcb.gov.br/" target="_blank" rel="noopener">dadosabertos.bcb.gov.br</a></footer>
 </main>
 
 <script>
 "use strict";
-const $ = (id) => document.getElementById(id);
-const estado = { resumo: null, apelido: null, anos: 5, cache: {} };
+const ESTATICO = window.BCB_ESTATICO === true;
+const URL_RESUMO = ESTATICO ? "dados/resumo.json" : "/api/resumo";
+const urlSerie = (a) => (ESTATICO ? `dados/${a}.json` : `/api/series/${a}`);
+const urlCsv = (a) => (ESTATICO ? `dados/${a}.csv` : `/api/series/${a}.csv`);
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const DIA = 86400000;
 
+const $ = (id) => document.getElementById(id);
+const estado = { resumo: null, por: {}, apelido: null, comparar: "", anos: 5, de: null, ate: null, cache: {} };
 try { estado.apelido = localStorage.getItem("serie"); } catch {}
-try { estado.anos = Number(localStorage.getItem("anos") ?? 5); } catch {}
+try { const a = localStorage.getItem("anos"); if (a !== null && !Number.isNaN(Number(a))) estado.anos = Number(a); } catch {}
 
 // ---------- utilidades ----------
-function formatar(valor, casas) {
-  return valor.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
-}
+const formatar = (v, casas) => v.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
+const reais = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const pct = (v) => `${v > 0 ? "+" : ""}${formatar(v, 2)}%`;
 function dataBr(ms, mensal) {
   const d = new Date(ms);
   const dia = String(d.getUTCDate()).padStart(2, "0");
   const mes = String(d.getUTCMonth() + 1).padStart(2, "0");
   return mensal ? `${mes}/${d.getUTCFullYear()}` : `${dia}/${mes}/${d.getUTCFullYear()}`;
 }
-function paraMs(iso) {
-  const [a, m, d] = iso.split("-").map(Number);
-  return Date.UTC(a, m - 1, d);
+const mesBr = (ms) => { const d = new Date(ms); return `${MESES[d.getUTCMonth()]}/${String(d.getUTCFullYear()).slice(2)}`; };
+function paraMs(iso) { const [a, m, d] = iso.split("-").map(Number); return Date.UTC(a, m - 1, d); }
+const paraIso = (ms) => new Date(ms).toISOString().slice(0, 10);
+function somarMeses(ms, n) {
+  // Como no Python: 31/01 + 1 mês = 28/02 (ou 29), sem "transbordar" para março.
+  const d = new Date(ms);
+  const alvo = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1);
+  const fimMes = new Date(Date.UTC(new Date(alvo).getUTCFullYear(), new Date(alvo).getUTCMonth() + 1, 0)).getUTCDate();
+  return alvo + (Math.min(d.getUTCDate(), fimMes) - 1) * DIA;
 }
 function el(tag, attrs = {}, texto) {
-  const e = document.createElementNS(tag === "svg" || attrs.svg ? "http://www.w3.org/2000/svg" : "http://www.w3.org/1999/xhtml", tag);
-  for (const [k, v] of Object.entries(attrs)) if (k !== "svg") e.setAttribute(k, v);
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
   if (texto !== undefined) e.textContent = texto;
   return e;
+}
+function svgEl(tag, attrs = {}, texto) {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (texto !== undefined) e.textContent = texto;
+  return e;
+}
+const escapar = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+function aviso(html, erro = false) {
+  $("avisos").innerHTML = html ? `<div class="aviso${erro ? " erro" : ""}">${html}</div>` : "";
 }
 async function api(url, opcoes) {
   const r = await fetch(url, opcoes);
@@ -214,91 +290,260 @@ async function api(url, opcoes) {
   if (!r.ok) throw new Error(dados.erro || `HTTP ${r.status}`);
   return dados;
 }
-function aviso(html, erro = false) {
-  $("avisos").innerHTML = html ? `<div class="aviso${erro ? " erro" : ""}">${html}</div>` : "";
+async function carregarSerie(apelido) {
+  if (!estado.cache[apelido]) {
+    const dados = await api(urlSerie(apelido));
+    // [ms, número para o gráfico, data e valor originais para o CSV]
+    estado.cache[apelido] = dados.observacoes.map(([d, v]) => [paraMs(d), Number(v), d, v]);
+  }
+  return estado.cache[apelido];
 }
-function escapar(t) {
-  return String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+/** Última observação com data <= ms (pontos em ordem cronológica). */
+function vigente(pontos, ms) {
+  let lo = 0, hi = pontos.length - 1, achado = null;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (pontos[m][0] <= ms) { achado = pontos[m]; lo = m + 1; } else hi = m - 1; }
+  return achado;
 }
 
 // ---------- resumo e cartões ----------
 async function carregarResumo() {
-  estado.resumo = await api("/api/resumo");
-  $("banco").textContent = `Banco: ${estado.resumo.banco}`;
-  const series = estado.resumo.series;
-  const comDados = series.filter((s) => s.ultima);
+  estado.resumo = await api(URL_RESUMO);
+  estado.por = Object.fromEntries(estado.resumo.series.map((s) => [s.apelido, s]));
+  const gerado = new Date(estado.resumo.gerado_em);
+  $("banco").textContent = ESTATICO
+    ? `Atualizado em ${gerado.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
+    : `Banco: ${estado.resumo.banco}`;
 
+  const comDados = estado.resumo.series.filter((s) => s.ultima);
   if (!comDados.length) {
-    aviso("O banco ainda está vazio. Clique em <b>Atualizar dados</b> para baixar o histórico desde 2000 (leva cerca de um minuto).");
+    aviso(ESTATICO ? "Ainda não há dados publicados."
+      : "O banco ainda está vazio. Clique em <b>Atualizar dados</b> para baixar o histórico desde 2000 (leva alguns minutos).");
   }
-  if (!comDados.some((s) => s.apelido === estado.apelido)) {
-    estado.apelido = comDados[0]?.apelido ?? null;
+  if (!estado.por[estado.apelido]?.ultima) estado.apelido = comDados[0]?.apelido ?? null;
+  if (estado.comparar && !estado.por[estado.comparar]?.ultima) estado.comparar = "";
+
+  const grupos = $("grupos");
+  grupos.replaceChildren();
+  let atual = null, grade = null;
+  for (const s of estado.resumo.series) {
+    if (s.grupo !== atual) {
+      atual = s.grupo;
+      const bloco = el("div", { class: "grupo" });
+      grade = el("div", { class: "cartoes" });
+      bloco.append(el("div", { class: "rotulo" }, s.grupo), grade);
+      grupos.append(bloco);
+    }
+    grade.append(cartao(s));
   }
 
-  const cartoes = $("cartoes");
-  cartoes.replaceChildren();
-  for (const s of series) {
-    const b = el("button", { type: "button", class: "cartao", "aria-pressed": String(s.apelido === estado.apelido) });
-    let corpo = `<span class="nome">${escapar(s.nome)}</span><span class="unid">${escapar(s.unidade)} · ${escapar(s.periodicidade)}</span>`;
-    if (s.ultima) {
-      const classe = s.sinal_variacao > 0 ? "sobe" : s.sinal_variacao < 0 ? "desce" : "";
-      const seta = s.sinal_variacao > 0 ? "▲ " : s.sinal_variacao < 0 ? "▼ " : "";
-      corpo += `<div class="valor num">${escapar(s.ultima.valor_br)}</div>
-        <div class="linha"><span>Data</span><b class="num">${escapar(s.ultima.data_br)}</b></div>
-        <div class="linha"><span>Var. 12m</span><b class="num ${classe}">${s.variacao_12m ? seta + escapar(s.variacao_12m) : "—"}</b></div>
-        <div class="linha"><span>${escapar(s.detalhe[0])}</span><b class="num">${escapar(s.detalhe[1])}</b></div>`;
-    } else {
-      corpo += `<div class="valor">—</div><div class="linha"><span>Sem dados</span></div>`;
-      b.disabled = true;
-    }
-    b.innerHTML = corpo;
-    if (s.descricao) b.title = s.descricao;
-    b.addEventListener("click", () => selecionar(s.apelido));
-    cartoes.append(b);
-  }
+  const select = $("comparar");
+  select.replaceChildren(el("option", { value: "" }, "Nenhuma"));
+  for (const s of comDados) select.append(el("option", { value: s.apelido }, s.nome));
+  select.value = estado.comparar;
 
   $("painel-grafico").hidden = $("painel-tabela").hidden = !estado.apelido;
-  if (estado.apelido) await selecionar(estado.apelido, true);
+  $("painel-simulador").hidden = !estado.por.cdi?.ultima;
+  if (estado.apelido) await selecionar(estado.apelido);
+  if (estado.por.cdi?.ultima) await prepararSimulador();
+}
+
+function cartao(s) {
+  const b = el("button", { type: "button", class: "cartao", "data-apelido": s.apelido, "aria-pressed": String(s.apelido === estado.apelido) });
+  let corpo = `<span class="nome">${escapar(s.nome)}</span><span class="unid">${escapar(s.unidade)} · ${escapar(s.periodicidade)}</span>`;
+  if (s.ultima) {
+    const seta = s.sinal_variacao > 0 ? "▲ " : s.sinal_variacao < 0 ? "▼ " : "";
+    corpo += `<div class="valor num">${escapar(s.ultima.valor_br)}</div>
+      <div class="linha"><span>Data</span><b class="num">${escapar(s.ultima.data_br)}</b></div>
+      <div class="linha"><span>Var. 12m</span><b class="num">${s.variacao_12m ? seta + escapar(s.variacao_12m) : "—"}</b></div>
+      <div class="linha"><span>${escapar(s.detalhe[0])}</span><b class="num">${escapar(s.detalhe[1])}</b></div>`;
+  } else {
+    corpo += `<div class="valor">—</div><div class="linha"><span>Sem dados</span></div>`;
+    b.disabled = true;
+  }
+  b.innerHTML = corpo;
+  if (s.descricao) b.title = s.descricao;
+  b.addEventListener("click", async () => {
+    await selecionar(s.apelido);
+    $("painel-grafico").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  return b;
 }
 
 // ---------- série selecionada ----------
-async function selecionar(apelido, recarregar = false) {
+async function selecionar(apelido) {
   estado.apelido = apelido;
   try { localStorage.setItem("serie", apelido); } catch {}
-  const s = estado.resumo.series.find((x) => x.apelido === apelido);
-  [...$("cartoes").children].forEach((c, i) =>
-    c.setAttribute("aria-pressed", String(estado.resumo.series[i].apelido === apelido)));
+  for (const c of document.querySelectorAll(".cartao")) c.setAttribute("aria-pressed", String(c.dataset.apelido === apelido));
+  if (estado.comparar === apelido) { estado.comparar = ""; $("comparar").value = ""; }
+  const s = estado.por[apelido];
+  await carregarSerie(apelido);
+  if (estado.comparar) await carregarSerie(estado.comparar);
 
-  if (recarregar || !estado.cache[apelido]) {
-    const dados = await api(`/api/series/${apelido}`);
-    estado.cache[apelido] = dados.observacoes.map(([d, v]) => [paraMs(d), Number(v)]);
-  }
-  const pontos = estado.cache[apelido];
   $("titulo-grafico").innerHTML = `${escapar(s.nome)}<small>${escapar(s.unidade)}</small>`;
   $("descricao").textContent = s.descricao || "";
   $("th-valor").textContent = `Valor (${s.unidade})`;
-  $("btn-csv").href = `/api/series/${apelido}.csv`;
+  $("btn-csv").href = urlCsv(apelido);
   $("btn-csv").setAttribute("download", `${apelido}.csv`);
-
-  const tbody = $("tabela");
-  tbody.replaceChildren();
-  const mensal = s.periodicidade === "mensal";
-  for (const [ms, v] of pontos.slice(-15).reverse()) {
-    const tr = el("tr");
-    tr.append(el("td", { class: "num" }, dataBr(ms, mensal)), el("td", { class: "num" }, formatar(v, s.casas)));
-    tbody.append(tr);
-  }
+  for (const o of $("comparar").options) o.disabled = o.value === apelido;
   desenhar();
 }
 
-// ---------- gráfico (SVG feito à mão, sem bibliotecas) ----------
+/** Intervalo [de, ate] em ms: pelos botões de período ou pelas datas escolhidas. */
+function intervalo(pontos) {
+  const primeiro = pontos[0][0], ultimo = pontos[pontos.length - 1][0];
+  if (estado.anos !== null) {
+    const de = estado.anos ? Math.max(primeiro, somarMeses(ultimo, -12 * estado.anos)) : primeiro;
+    return [de, ultimo];
+  }
+  let de = estado.de ?? primeiro, ate = estado.ate ?? ultimo;
+  if (de > ate) [de, ate] = [ate, de];
+  return [de, ate];
+}
+
+const noPeriodo = (pontos, de, ate) => pontos.filter((p) => p[0] >= de && p[0] <= ate);
+
+function desenhar() {
+  const s = estado.por[estado.apelido];
+  const todos = estado.cache[estado.apelido] || [];
+  for (const b of $("periodos").children) b.setAttribute("aria-pressed", String(estado.anos !== null && Number(b.dataset.anos) === estado.anos));
+  const svg = $("svg");
+  svg.replaceChildren();
+  if (!todos.length) return;
+
+  const [de, ate] = intervalo(todos);
+  $("de").value = paraIso(de);
+  $("ate").value = paraIso(ate);
+  $("de").min = $("ate").min = paraIso(todos[0][0]);
+  $("de").max = $("ate").max = paraIso(todos.at(-1)[0]);
+
+  const pontos = noPeriodo(todos, de, ate);
+  const comp = estado.comparar ? estado.por[estado.comparar] : null;
+  const pontosComp = comp ? noPeriodo(estado.cache[estado.comparar] || [], de, ate) : [];
+  const mensal = s.periodicidade === "mensal";
+  atualizarTabela(s, pontos);
+
+  const legenda = $("legenda");
+  legenda.replaceChildren();
+  if (!pontos.length) {
+    $("faixa").textContent = "Sem observações neste período.";
+    return;
+  }
+  if (comp) {
+    legenda.innerHTML =
+      `<span><i style="background:var(--linha)"></i>${escapar(s.nome)} (${escapar(s.unidade)}) · eixo esquerdo</span>` +
+      `<span><i style="background:var(--linha-2)"></i>${escapar(comp.nome)} (${escapar(comp.unidade)}) · eixo direito</span>`;
+  }
+
+  const valores = pontos.map((p) => p[1]);
+  const mi = Math.min(...valores), ma = Math.max(...valores);
+  const pMi = pontos[valores.indexOf(mi)], pMa = pontos[valores.indexOf(ma)];
+  $("faixa").textContent =
+    `${dataBr(pontos[0][0], mensal)} a ${dataBr(pontos.at(-1)[0], mensal)} · ` +
+    `mínimo ${formatar(mi, s.casas)} (${dataBr(pMi[0], mensal)}) · máximo ${formatar(ma, s.casas)} (${dataBr(pMa[0], mensal)})`;
+
+  const L = svg.clientWidth, A = svg.clientHeight;
+  const m = { e: 64, d: pontosComp.length ? 72 : 8, c: 10, b: 28 };
+  const escala = (vals) => {
+    const { ticks, casas } = ticksBonitos(Math.min(...vals), Math.max(...vals), 5);
+    return { ticks, casas, y0: ticks[0], y1: ticks.at(-1) };
+  };
+  const e1 = escala(valores);
+  const e2 = pontosComp.length ? escala(pontosComp.map((p) => p[1])) : null;
+  let x0 = pontos[0][0], x1 = pontos.at(-1)[0];
+  if (pontosComp.length) { x0 = Math.min(x0, pontosComp[0][0]); x1 = Math.max(x1, pontosComp.at(-1)[0]); }
+  if (x1 === x0) x1 = x0 + DIA;
+  const px = (t) => m.e + ((t - x0) / (x1 - x0)) * (L - m.e - m.d);
+  const py = (v, e = e1) => A - m.b - ((v - e.y0) / (e.y1 - e.y0)) * (A - m.c - m.b);
+  svg.setAttribute("viewBox", `0 0 ${L} ${A}`);
+  svg.setAttribute("aria-label", `Gráfico de ${s.nome}${comp ? ` comparado com ${comp.nome}` : ""}`);
+
+  for (const t of e1.ticks) {
+    svg.append(svgEl("line", { x1: m.e, x2: L - m.d, y1: py(t), y2: py(t), stroke: "var(--grade)" }));
+    svg.append(svgEl("text", { x: m.e - 8, y: py(t) + 4, "text-anchor": "end" }, formatar(t, e1.casas)));
+  }
+  if (e2) {
+    // Eixo direito: rótulos nas mesmas alturas das linhas de grade do eixo esquerdo.
+    const n = e1.ticks.length - 1;
+    const casas2 = Math.max(0, -Math.floor(Math.log10((e2.y1 - e2.y0) / n) - 1e-9));
+    for (let i = 0; i <= n; i++) {
+      const v = e2.y0 + ((e2.y1 - e2.y0) * i) / n;
+      svg.append(svgEl("text", { x: L - m.d + 8, y: py(e1.ticks[i]) + 4, "text-anchor": "start" }, formatar(v, Math.min(casas2, 6))));
+    }
+  }
+
+  // Eixo X: anos (ou meses, em períodos curtos), no máximo ~8 rótulos.
+  const anoIni = new Date(x0).getUTCFullYear(), anoFim = new Date(x1).getUTCFullYear();
+  const marcas = [];
+  if (anoFim - anoIni >= 2) {
+    const passo = Math.ceil((anoFim - anoIni + 1) / 8);
+    for (let a = anoIni + 1; a <= anoFim; a += passo) marcas.push([Date.UTC(a, 0, 1), String(a)]);
+  } else {
+    const meses = Math.max(1, Math.round((x1 - x0) / (30.4 * DIA)));
+    const passo = Math.max(1, Math.ceil(meses / 8));
+    const inicioMes = Date.UTC(new Date(x0).getUTCFullYear(), new Date(x0).getUTCMonth(), 1);
+    for (let k = 1; ; k += passo) {
+      const t = somarMeses(inicioMes, k);
+      if (t > x1) break;
+      marcas.push([t, mesBr(t)]);
+    }
+  }
+  for (const [t, rotulo] of marcas) {
+    svg.append(svgEl("line", { x1: px(t), x2: px(t), y1: A - m.b, y2: A - m.b + 4, stroke: "var(--suave)" }));
+    svg.append(svgEl("text", { x: px(t), y: A - 8, "text-anchor": "middle" }, rotulo));
+  }
+
+  const largura = Math.max(50, Math.floor(L - m.e - m.d));
+  const traco = (pts, e) => pts.map((p, i) => `${i ? "L" : "M"}${px(p[0]).toFixed(1)},${py(p[1], e).toFixed(1)}`).join("");
+  const desenho = reduzir(pontos, largura);
+  const caminho = traco(desenho, e1);
+  const base = py(Math.max(e1.y0, Math.min(0, e1.y1)));
+  svg.append(svgEl("path", { d: `${caminho}L${px(desenho.at(-1)[0])},${base}L${px(desenho[0][0])},${base}Z`, fill: "var(--area)", opacity: comp ? 0.18 : 0.35 }));
+  if (e1.y0 < 0 && e1.y1 > 0) svg.append(svgEl("line", { x1: m.e, x2: L - m.d, y1: py(0), y2: py(0), stroke: "var(--suave)", "stroke-dasharray": "3 3" }));
+  if (e2) svg.append(svgEl("path", { d: traco(reduzir(pontosComp, largura), e2), fill: "none", stroke: "var(--linha-2)", "stroke-width": 1.3, "stroke-linejoin": "round", opacity: 0.85 }));
+  svg.append(svgEl("path", { d: caminho, fill: "none", stroke: "var(--linha)", "stroke-width": 1.6, "stroke-linejoin": "round" }));
+
+  // Interação: linha vertical + ponto(s) + dica com data e valores.
+  const guia = svgEl("line", { y1: m.c, y2: A - m.b, stroke: "var(--texto)", "stroke-dasharray": "3 3", visibility: "hidden" });
+  const ponto = svgEl("circle", { r: 4, fill: "var(--linha)", stroke: "var(--fundo)", "stroke-width": 2, visibility: "hidden" });
+  const ponto2 = svgEl("circle", { r: 3.5, fill: "var(--linha-2)", stroke: "var(--fundo)", "stroke-width": 2, visibility: "hidden" });
+  svg.append(guia, ponto2, ponto);
+  const dica = $("dica");
+
+  svg.onpointermove = (ev) => {
+    const r = svg.getBoundingClientRect();
+    const t = x0 + ((ev.clientX - r.left - m.e) / (L - m.e - m.d)) * (x1 - x0);
+    let lo = 0, hi = pontos.length - 1;
+    while (lo < hi) { const meio = (lo + hi) >> 1; if (pontos[meio][0] < t) lo = meio + 1; else hi = meio; }
+    if (lo > 0 && t - pontos[lo - 1][0] < pontos[lo][0] - t) lo--;
+    const [pt, pv] = pontos[lo];
+    const cx = px(pt);
+    guia.setAttribute("x1", cx); guia.setAttribute("x2", cx);
+    ponto.setAttribute("cx", cx); ponto.setAttribute("cy", py(pv));
+    guia.setAttribute("visibility", "visible"); ponto.setAttribute("visibility", "visible");
+    let texto = `${dataBr(pt, mensal)} · ${formatar(pv, s.casas)} ${s.unidade}`;
+    const v2 = e2 ? vigente(pontosComp, pt) : null;
+    if (v2) {
+      ponto2.setAttribute("cx", cx); ponto2.setAttribute("cy", py(v2[1], e2)); ponto2.setAttribute("visibility", "visible");
+      texto += `\n${comp.nome}: ${formatar(v2[1], comp.casas)} ${comp.unidade}`;
+    } else ponto2.setAttribute("visibility", "hidden");
+    dica.textContent = texto;
+    dica.style.display = "block";
+    const w = dica.offsetWidth;
+    dica.style.left = `${Math.min(Math.max(cx - w / 2, 0), L - w)}px`;
+    dica.style.top = `${Math.max(py(pv) - dica.offsetHeight - 14, 0)}px`;
+  };
+  svg.onpointerleave = () => {
+    for (const x of [guia, ponto, ponto2]) x.setAttribute("visibility", "hidden");
+    dica.style.display = "none";
+  };
+}
+
 function ticksBonitos(min, max, quantidade) {
-  if (min === max) { min -= 1; max += 1; }
+  if (min === max) { const folga = Math.abs(min) * 0.05 || 1; min -= folga; max += folga; }
   const bruto = (max - min) / quantidade;
   const mag = 10 ** Math.floor(Math.log10(bruto));
-  const passo = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((p) => p >= bruto);
-  const inicio = Math.floor(min / passo) * passo;
-  const fim = Math.ceil(max / passo) * passo;
+  const passo = [1, 2, 2.5, 5, 10].map((k) => k * mag).find((p) => p >= bruto);
+  const inicio = Math.floor(min / passo) * passo, fim = Math.ceil(max / passo) * passo;
   const ticks = [];
   for (let t = inicio; t <= fim + passo / 2; t += passo) ticks.push(Number(t.toFixed(10)));
   return { ticks, casas: Math.max(0, -Math.floor(Math.log10(passo) + 1e-9)) };
@@ -318,106 +563,136 @@ function reduzir(pontos, baldes) {
   return saida;
 }
 
-function desenhar() {
-  const s = estado.resumo.series.find((x) => x.apelido === estado.apelido);
-  const todos = estado.cache[estado.apelido] || [];
-  [...$("periodos").children].forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.anos) === estado.anos)));
-
-  const svg = $("svg");
-  svg.replaceChildren();
-  if (!todos.length) return;
-
-  const ultimo = todos[todos.length - 1][0];
-  let corte = -Infinity;
-  if (estado.anos) {
-    const d = new Date(ultimo);
-    corte = Date.UTC(d.getUTCFullYear() - estado.anos, d.getUTCMonth(), d.getUTCDate());
-  }
-  const pontos = todos.filter((p) => p[0] >= corte);
+// ---------- tabela e CSV do período ----------
+function atualizarTabela(s, pontos) {
   const mensal = s.periodicidade === "mensal";
+  $("contagem").textContent = `${pontos.length.toLocaleString("pt-BR")} no período · últimas 15`;
+  const tbody = $("tabela");
+  tbody.replaceChildren();
+  for (const [ms, v] of pontos.slice(-15).reverse()) {
+    const tr = el("tr");
+    tr.append(el("td", { class: "num" }, dataBr(ms, mensal)), el("td", { class: "num" }, formatar(v, s.casas)));
+    tbody.append(tr);
+  }
+}
 
-  const valores = pontos.map((p) => p[1]);
-  const mi = Math.min(...valores), ma = Math.max(...valores);
-  const iMi = valores.indexOf(mi), iMa = valores.indexOf(ma);
-  $("faixa").textContent =
-    `${dataBr(pontos[0][0], mensal)} a ${dataBr(ultimo, mensal)} · ` +
-    `mínimo ${formatar(mi, s.casas)} (${dataBr(pontos[iMi][0], mensal)}) · ` +
-    `máximo ${formatar(ma, s.casas)} (${dataBr(pontos[iMa][0], mensal)})`;
+$("btn-csv-periodo").addEventListener("click", () => {
+  const todos = estado.cache[estado.apelido] || [];
+  if (!todos.length) return;
+  const [de, ate] = intervalo(todos);
+  // Mesmo formato do comando exportar: data ISO e valor exatamente como publicado.
+  const linhas = ["data,valor", ...noPeriodo(todos, de, ate).map((p) => `${p[2]},${p[3]}`)];
+  const blob = new Blob([linhas.join("\n") + "\n"], { type: "text/csv;charset=utf-8" });
+  const a = el("a", { href: URL.createObjectURL(blob), download: `${estado.apelido}_${paraIso(de)}_a_${paraIso(ate)}.csv` });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
 
-  const L = svg.clientWidth, A = svg.clientHeight;
-  const m = { e: 64, d: 8, c: 10, b: 28 };
-  const { ticks, casas } = ticksBonitos(mi, ma, 5);
-  const y0 = ticks[0], y1 = ticks[ticks.length - 1];
-  const x0 = pontos[0][0], x1 = Math.max(ultimo, x0 + 1);
-  const px = (t) => m.e + ((t - x0) / (x1 - x0)) * (L - m.e - m.d);
-  const py = (v) => A - m.b - ((v - y0) / (y1 - y0)) * (A - m.c - m.b);
-  svg.setAttribute("viewBox", `0 0 ${L} ${A}`);
-  svg.setAttribute("aria-label", `Gráfico de ${s.nome}`);
+// ---------- simulador ----------
+async function prepararSimulador() {
+  const [cdi] = await Promise.all([
+    carregarSerie("cdi"),
+    carregarSerie("poupanca").catch(() => []),
+    carregarSerie("ipca").catch(() => []),
+  ]);
+  const ultimo = cdi.at(-1)[0];
+  for (const id of ["sim-de", "sim-ate"]) { $(id).min = paraIso(cdi[0][0]); $(id).max = paraIso(ultimo); }
+  if (!$("sim-ate").value) $("sim-ate").value = paraIso(ultimo);
+  if (!$("sim-de").value) $("sim-de").value = paraIso(somarMeses(ultimo, -12));
+  simular();
+}
 
-  for (const t of ticks) {
-    svg.append(el("line", { svg: 1, x1: m.e, x2: L - m.d, y1: py(t), y2: py(t), stroke: "var(--grade)" }));
-    svg.append(el("text", { svg: 1, x: m.e - 8, y: py(t) + 4, "text-anchor": "end", class: "num" }, formatar(t, casas)));
+function lerReais(texto) {
+  const limpo = texto.replace(/[^\d,.]/g, "");
+  const n = limpo.includes(",") ? Number(limpo.replace(/\./g, "").replace(",", ".")) : Number(limpo.replace(/\.(?=\d{3}(\D|$))/g, ""));
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function simular() {
+  const corpo = $("sim-tabela"), notas = $("sim-notas");
+  corpo.replaceChildren();
+  notas.textContent = "";
+  const valor = lerReais($("sim-valor").value);
+  const percentual = Number($("sim-pct").value);
+  if (!$("sim-de").value || !$("sim-ate").value || !estado.cache.cdi) return;
+  let de = paraMs($("sim-de").value), ate = paraMs($("sim-ate").value);
+  if (de > ate) [de, ate] = [ate, de];
+  if (!(valor > 0) || !(percentual > 0)) {
+    notas.textContent = "Informe um valor e um percentual do CDI maiores que zero.";
+    return;
   }
 
-  // Eixo X: anos (ou meses, em períodos curtos), no máximo ~8 rótulos.
-  const anoIni = new Date(x0).getUTCFullYear(), anoFim = new Date(x1).getUTCFullYear();
-  const marcas = [];
-  if (anoFim - anoIni >= 2) {
-    const passo = Math.ceil((anoFim - anoIni + 1) / 8);
-    for (let a = anoIni + 1; a <= anoFim; a += passo) marcas.push([Date.UTC(a, 0, 1), String(a)]);
-  } else {
-    const meses = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-    const d = new Date(x0);
-    for (let k = 1; k <= 26; k += 2) {
-      const t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + k, 1);
-      if (t > x1) break;
-      const dt = new Date(t);
-      marcas.push([t, `${meses[dt.getUTCMonth()]}/${String(dt.getUTCFullYear()).slice(2)}`]);
+  // CDI: a taxa de cada dia útil rende do dia da aplicação até a véspera do resgate.
+  let fatorCdi = 1, dias = 0;
+  for (const [ms, taxa] of estado.cache.cdi) {
+    if (ms >= de && ms < ate) { fatorCdi *= 1 + (taxa / 100) * (percentual / 100); dias++; }
+  }
+
+  // Poupança: rende a cada aniversário mensal, com a taxa do dia do aniversário.
+  // Depósitos nos dias 29, 30 e 31 fazem aniversário no dia 1º do mês seguinte.
+  const poup = estado.cache.poupanca || [];
+  let fatorPoup = null, meses = 0;
+  if (poup.length && de >= poup[0][0]) {
+    fatorPoup = 1;
+    const d0 = new Date(de);
+    let d = d0.getUTCDate() > 28 ? Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + 1, 1) : de;
+    while (somarMeses(d, 1) <= ate) {
+      const r = vigente(poup, d);
+      if (!r || d - r[0] > 7 * DIA) { fatorPoup = null; break; }
+      fatorPoup *= 1 + r[1] / 100;
+      d = somarMeses(d, 1);
+      meses++;
     }
   }
-  for (const [t, rotulo] of marcas) {
-    svg.append(el("line", { svg: 1, x1: px(t), x2: px(t), y1: A - m.b, y2: A - m.b + 4, stroke: "var(--suave)" }));
-    svg.append(el("text", { svg: 1, x: px(t), y: A - 8, "text-anchor": "middle" }, rotulo));
+
+  // Inflação: IPCA de cada mês que se sobrepõe ao período; meses incompletos
+  // entram proporcionalmente aos dias, (1 + taxa)^(dias no período / dias do mês).
+  const ipca = [];
+  let fatorIpca = 1;
+  for (const [ms, taxa] of estado.cache.ipca || []) {
+    const fimMes = somarMeses(ms, 1);
+    const dias = (Math.min(fimMes, ate) - Math.max(ms, de)) / DIA;
+    if (dias <= 0) continue;
+    fatorIpca *= (1 + taxa / 100) ** (dias / ((fimMes - ms) / DIA));
+    ipca.push([ms, dias < (fimMes - ms) / DIA]);
+  }
+  const ultimoIpca = (estado.cache.ipca || []).at(-1)?.[0];
+  const faltando = ultimoIpca !== undefined && somarMeses(ultimoIpca, 1) < ate;
+
+  const linhas = [
+    [`${formatar(percentual, 0)}% do CDI`, fatorCdi, true, true],
+    ["Poupança", fatorPoup, false, true],
+    ["Só a inflação (IPCA)", ipca.length ? fatorIpca : null, false, false],
+  ];
+  for (const [nome, fator, destaque, comReal] of linhas) {
+    const tr = el("tr", destaque ? { class: "sim-destaque" } : {});
+    const real = fator && comReal && ipca.length ? pct((fator / fatorIpca - 1) * 100) : "—";
+    tr.append(
+      el("td", {}, nome),
+      el("td", { class: "num" }, fator ? reais(valor * fator) : "—"),
+      el("td", { class: "num" }, fator ? pct((fator - 1) * 100) : "—"),
+      el("td", { class: "num" }, real),
+    );
+    corpo.append(tr);
   }
 
-  const desenho = reduzir(pontos, Math.max(50, Math.floor(L - m.e - m.d)));
-  const caminho = desenho.map((p, i) => `${i ? "L" : "M"}${px(p[0]).toFixed(1)},${py(p[1]).toFixed(1)}`).join("");
-  const base = py(Math.max(y0, Math.min(0, y1)));
-  svg.append(el("path", { svg: 1, d: `${caminho}L${px(desenho.at(-1)[0])},${base}L${px(desenho[0][0])},${base}Z`, fill: "var(--area)", opacity: 0.35 }));
-  if (y0 < 0 && y1 > 0) svg.append(el("line", { svg: 1, x1: m.e, x2: L - m.d, y1: py(0), y2: py(0), stroke: "var(--suave)", "stroke-dasharray": "3 3" }));
-  svg.append(el("path", { svg: 1, d: caminho, fill: "none", stroke: "var(--linha)", "stroke-width": 1.6, "stroke-linejoin": "round" }));
-
-  // Interação: linha vertical + ponto + dica com data e valor.
-  const guia = el("line", { svg: 1, y1: m.c, y2: A - m.b, stroke: "var(--texto)", "stroke-dasharray": "3 3", visibility: "hidden" });
-  const ponto = el("circle", { svg: 1, r: 4, fill: "var(--linha)", stroke: "var(--fundo)", "stroke-width": 2, visibility: "hidden" });
-  svg.append(guia, ponto);
-  const dica = $("dica");
-
-  function mover(ev) {
-    const r = svg.getBoundingClientRect();
-    const x = ev.clientX - r.left;
-    const t = x0 + ((x - m.e) / (L - m.e - m.d)) * (x1 - x0);
-    let lo = 0, hi = pontos.length - 1;
-    while (lo < hi) { const meio = (lo + hi) >> 1; if (pontos[meio][0] < t) lo = meio + 1; else hi = meio; }
-    if (lo > 0 && t - pontos[lo - 1][0] < pontos[lo][0] - t) lo--;
-    const [pt, pv] = pontos[lo];
-    const cx = px(pt), cy = py(pv);
-    guia.setAttribute("x1", cx); guia.setAttribute("x2", cx);
-    ponto.setAttribute("cx", cx); ponto.setAttribute("cy", cy);
-    guia.setAttribute("visibility", "visible"); ponto.setAttribute("visibility", "visible");
-    dica.textContent = `${dataBr(pt, mensal)} · ${formatar(pv, s.casas)} ${s.unidade}`;
-    dica.style.display = "block";
-    const largura = dica.offsetWidth;
-    dica.style.left = `${Math.min(Math.max(cx - largura / 2, 0), L - largura)}px`;
-    dica.style.top = `${Math.max(cy - 38, 0)}px`;
+  const partes = [`Valores brutos, sem imposto de renda nem taxas. CDI: ${dias} dias úteis.`];
+  partes.push(fatorPoup
+    ? `Poupança: ${meses} ${meses === 1 ? "aniversário" : "aniversários"} mensais completos.`
+    : "Poupança: sem dados para o período (a série começa em 04/05/2012).");
+  if (ipca.length) {
+    let texto = `Inflação: IPCA de ${mesBr(ipca[0][0])} a ${mesBr(ipca.at(-1)[0])}`;
+    if (ipca.some((p) => p[1])) texto += ", proporcional aos dias nos meses incompletos";
+    if (faltando) texto += `; depois de ${mesBr(ultimoIpca)} o IPCA ainda não foi divulgado e não entra na conta`;
+    partes.push(`${texto}. Ganho real é o rendimento descontada essa inflação.`);
+  } else {
+    partes.push("Inflação: nenhum IPCA divulgado no período, então o ganho real não é calculado.");
   }
-  function esconder() {
-    guia.setAttribute("visibility", "hidden"); ponto.setAttribute("visibility", "hidden");
-    dica.style.display = "none";
-  }
-  svg.onpointermove = mover;
-  svg.onpointerleave = esconder;
+  notas.textContent = partes.join(" ");
 }
+$("sim").addEventListener("input", simular);
 
 // ---------- ações ----------
 $("periodos").addEventListener("click", (ev) => {
@@ -427,29 +702,47 @@ $("periodos").addEventListener("click", (ev) => {
   try { localStorage.setItem("anos", String(estado.anos)); } catch {}
   desenhar();
 });
-
-$("btn-coletar").addEventListener("click", async () => {
-  const botao = $("btn-coletar");
-  botao.disabled = true;
-  botao.textContent = "Atualizando…";
-  aviso("Baixando dados novos da API do Banco Central…");
-  try {
-    const { resultados } = await api("/api/coletar", { method: "POST", headers: { "X-BCB-Indicadores": "1" } });
-    const erros = resultados.filter((r) => r.erro);
-    const novos = resultados.reduce((t, r) => t + (r.inseridos || 0), 0);
-    const atualizados = resultados.reduce((t, r) => t + (r.atualizados || 0), 0);
-    let html = `Dados atualizados: ${novos} observações novas, ${atualizados} revisadas.`;
-    if (erros.length) html += `<ul>${erros.map((r) => `<li>${escapar(r.nome)}: ${escapar(r.erro)}</li>`).join("")}</ul>`;
-    estado.cache = {};
-    await carregarResumo();
-    aviso(html, erros.length > 0);
-  } catch (e) {
-    aviso(`Não foi possível atualizar: ${escapar(e.message)}`, true);
-  } finally {
-    botao.disabled = false;
-    botao.textContent = "Atualizar dados";
-  }
+for (const id of ["de", "ate"]) {
+  $(id).addEventListener("change", () => {
+    if (!$("de").value || !$("ate").value) return;
+    estado.anos = null;
+    estado.de = paraMs($("de").value);
+    estado.ate = paraMs($("ate").value);
+    desenhar();
+  });
+}
+$("comparar").addEventListener("change", async (ev) => {
+  estado.comparar = ev.target.value;
+  if (estado.comparar) await carregarSerie(estado.comparar);
+  desenhar();
 });
+
+if (ESTATICO) {
+  $("btn-coletar").hidden = true;
+} else {
+  $("btn-coletar").addEventListener("click", async () => {
+    const botao = $("btn-coletar");
+    botao.disabled = true;
+    botao.textContent = "Atualizando…";
+    aviso("Baixando dados novos da API do Banco Central…");
+    try {
+      const { resultados } = await api("/api/coletar", { method: "POST", headers: { "X-BCB-Indicadores": "1" } });
+      const erros = resultados.filter((r) => r.erro);
+      const novos = resultados.reduce((t, r) => t + (r.inseridos || 0), 0);
+      const atualizados = resultados.reduce((t, r) => t + (r.atualizados || 0), 0);
+      let html = `Dados atualizados: ${novos} observações novas, ${atualizados} revisadas.`;
+      if (erros.length) html += `<ul>${erros.map((r) => `<li>${escapar(r.nome)}: ${escapar(r.erro)}</li>`).join("")}</ul>`;
+      estado.cache = {};
+      await carregarResumo();
+      aviso(html, erros.length > 0);
+    } catch (e) {
+      aviso(`Não foi possível atualizar: ${escapar(e.message)}`, true);
+    } finally {
+      botao.disabled = false;
+      botao.textContent = "Atualizar dados";
+    }
+  });
+}
 
 let espera;
 window.addEventListener("resize", () => { clearTimeout(espera); espera = setTimeout(() => estado.apelido && desenhar(), 120); });

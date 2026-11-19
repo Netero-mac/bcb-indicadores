@@ -118,6 +118,11 @@ def resumo_do_banco(conexao: sqlite3.Connection, serie: Serie) -> ResumoSerie:
 # ---------------------------------------------------------------------------
 
 
+# Casas decimais dos indicadores derivados: mais que o suficiente para exibir
+# e exportar, sem as 28 casas de ruído da divisão com Decimal.
+PRECISAO_DERIVADOS = Decimal("0.000001")
+
+
 def acumulado(taxas: Iterable[Decimal]) -> Decimal:
     """Taxa composta, em %, de uma sequência de taxas em %: [1, 1] -> 2,01."""
     fator = Decimal(1)
@@ -139,17 +144,19 @@ def ultimo_dia_do_mes(data: date) -> date:
     return (data.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
 
 
-def ipca_12m(ipca: list[Observacao]) -> list[Observacao]:
-    """IPCA acumulado em 12 meses, um ponto por mês (data do último mês da janela).
+def acumulado_12m(mensal: list[Observacao]) -> list[Observacao]:
+    """Taxa mensal acumulada em 12 meses, um ponto por mês (data do último mês da janela).
 
-    ``ipca`` deve estar em ordem cronológica. Janelas com mês faltando são puladas.
+    Serve para IPCA e IGP-M. ``mensal`` deve estar em ordem cronológica.
+    Janelas com mês faltando são puladas.
     """
     saida = []
-    for fim in range(11, len(ipca)):
-        janela = ipca[fim - 11 : fim + 1]
+    for fim in range(11, len(mensal)):
+        janela = mensal[fim - 11 : fim + 1]
         if _mes(janela[-1].data) - _mes(janela[0].data) != 11:
             continue
-        saida.append(Observacao(janela[-1].data, acumulado(o.valor for o in janela)))
+        valor = acumulado(o.valor for o in janela).quantize(PRECISAO_DERIVADOS)
+        saida.append(Observacao(janela[-1].data, valor))
     return saida
 
 
@@ -166,19 +173,36 @@ def juro_real_mensal(selic: list[Observacao], ipca12m: list[Observacao]) -> list
         # Exige uma Selic dentro do próprio mês, para não usar um valor antigo.
         if i < 0 or selic[i].data < inflacao.data:
             continue
-        saida.append(Observacao(inflacao.data, juro_real(selic[i].valor, inflacao.valor)))
+        valor = juro_real(selic[i].valor, inflacao.valor).quantize(PRECISAO_DERIVADOS)
+        saida.append(Observacao(inflacao.data, valor))
 
     if saida and selic[-1].data > ultimo_dia_do_mes(ipca12m[-1].data):
-        saida.append(Observacao(selic[-1].data, juro_real(selic[-1].valor, ipca12m[-1].valor)))
+        valor = juro_real(selic[-1].valor, ipca12m[-1].valor).quantize(PRECISAO_DERIVADOS)
+        saida.append(Observacao(selic[-1].data, valor))
     return saida
 
 
 def derivadas_do_banco(conexao: sqlite3.Connection) -> dict[str, list[Observacao]]:
     """Calcula as séries derivadas a partir do banco, indexadas pelo apelido."""
-    ipca = banco.listar(conexao, buscar_serie("ipca").codigo)
-    selic = banco.listar(conexao, buscar_serie("selic").codigo)
-    acumulado_12m = ipca_12m(ipca)
-    return {"ipca12m": acumulado_12m, "juroreal": juro_real_mensal(selic, acumulado_12m)}
+
+    def listar(apelido: str) -> list[Observacao]:
+        return banco.listar(conexao, buscar_serie(apelido).codigo)
+
+    ipca12m = acumulado_12m(listar("ipca"))
+    return {
+        "ipca12m": ipca12m,
+        "igpm12m": acumulado_12m(listar("igpm")),
+        "juroreal": juro_real_mensal(listar("selic"), ipca12m),
+    }
+
+
+def observacoes_do_indicador(
+    conexao: sqlite3.Connection, indicador: Serie | Derivada
+) -> list[Observacao]:
+    """Todas as observações de uma série do SGS ou de um indicador derivado."""
+    if isinstance(indicador, Derivada):
+        return derivadas_do_banco(conexao)[indicador.apelido]
+    return banco.listar(conexao, indicador.codigo)
 
 
 def resumos_derivados(conexao: sqlite3.Connection) -> list[ResumoSerie]:

@@ -25,6 +25,11 @@ SERIES: tuple[Serie, ...] = (
     Serie(433, "ipca", "IPCA mensal", "% a.m.", "mensal", 2),
     Serie(1, "dolar", "Dólar PTAX venda", "R$", "diária", 4),
     Serie(12, "cdi", "CDI diário", "% a.d.", "diária", 6),
+    Serie(189, "igpm", "IGP-M mensal", "% a.m.", "mensal", 2),
+    Serie(21620, "euro", "Euro PTAX venda", "R$", "diária", 4),
+    # Poupança: uma observação por dia de aniversário, com o rendimento do mês seguinte.
+    Serie(195, "poupanca", "Poupança", "% a.m.", "diária", 4),
+    Serie(24364, "ibcbr", "IBC-Br dessazonalizado", "índice", "mensal", 2),
 )
 
 
@@ -62,6 +67,15 @@ DERIVADAS: tuple[Derivada, ...] = (
         "mensal",
         2,
         "Inflação acumulada nos 12 últimos meses: produto de (1 + IPCA mensal/100), menos 1.",
+    ),
+    Derivada(
+        "igpm12m",
+        "IGP-M 12 meses",
+        "% em 12m",
+        "mensal",
+        2,
+        "IGP-M acumulado nos 12 últimos meses (índice usado em reajustes de aluguel): "
+        "produto de (1 + IGP-M mensal/100), menos 1.",
     ),
     Derivada(
         "juroreal",

@@ -9,6 +9,9 @@ Rotas:
     GET  /api/series/<apelido>      todas as observações da série
     GET  /api/series/<apelido>.csv  a série em CSV (mesmo formato do comando ``exportar``)
     POST /api/coletar               baixa da API o que for novo e grava no banco
+
+``gerar_site`` produz a mesma página como site estático (para GitHub Pages),
+com os dados em arquivos JSON e sem o botão de coleta.
 """
 
 from __future__ import annotations
@@ -20,6 +23,7 @@ import logging
 import threading
 import webbrowser
 from collections.abc import Callable
+from datetime import datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
@@ -30,7 +34,13 @@ from bcb_indicadores import banco
 from bcb_indicadores.cliente import ClienteSGS, ErroAPI
 from bcb_indicadores.coleta import Cliente, coletar_serie
 from bcb_indicadores.formatacao import data_br, numero_br
-from bcb_indicadores.relatorios import ResumoSerie, derivadas_do_banco, resumir, resumo_do_banco
+from bcb_indicadores.relatorios import (
+    ResumoSerie,
+    derivadas_do_banco,
+    observacoes_do_indicador,
+    resumir,
+    resumo_do_banco,
+)
 from bcb_indicadores.series import DERIVADAS, SERIES, Derivada, Serie, buscar_derivada, buscar_serie
 
 HOST = "127.0.0.1"
@@ -41,8 +51,15 @@ PORTA_PADRAO = 8000
 # outra página aberta no navegador dispare coletas.
 CABECALHO_ACAO = "X-BCB-Indicadores"
 
-# Ordem dos cartões na página: juros na primeira linha, inflação e câmbio na segunda.
-ORDEM_CARTOES = ("selic", "cdi", "juroreal", "ipca", "ipca12m", "dolar")
+# Grupos e ordem dos cartões na página.
+GRUPOS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Juros", ("selic", "cdi", "juroreal", "poupanca")),
+    ("Inflação", ("ipca", "ipca12m", "igpm", "igpm12m")),
+    ("Câmbio e atividade", ("dolar", "euro", "ibcbr")),
+)
+
+# Marcador no HTML trocado por ``gerar_site`` para ligar o modo estático.
+MARCADOR_MODO = "<!-- modo -->"
 
 MESES = ("jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez")
 
@@ -72,13 +89,19 @@ class Aplicacao:
             observacoes = derivadas[d.apelido]
             itens[d.apelido] = _resumo_json(resumir(d, observacoes), len(observacoes))
         _detalhes_derivados(itens)
-        return {"banco": str(self.caminho_banco), "series": [itens[a] for a in ORDEM_CARTOES]}
+        series = []
+        for grupo, apelidos in GRUPOS:
+            for apelido in apelidos:
+                series.append({**itens[apelido], "grupo": grupo})
+        return {
+            "banco": str(self.caminho_banco),
+            "gerado_em": datetime.now().astimezone().isoformat(timespec="minutes"),
+            "series": series,
+        }
 
     def _listar(self, serie: Indicador) -> list:
         with banco.abrir_banco(self.caminho_banco) as conexao:
-            if isinstance(serie, Derivada):
-                return derivadas_do_banco(conexao)[serie.apelido]
-            return banco.listar(conexao, serie.codigo)
+            return observacoes_do_indicador(conexao, serie)
 
     def observacoes(self, serie: Indicador) -> dict:
         observacoes = self._listar(serie)
@@ -171,19 +194,52 @@ def _mes_br(iso: str) -> str:
 
 def _detalhes_derivados(itens: dict[str, dict]) -> None:
     """Troca a "média 12m" dos derivados por uma linha que explica de onde vem o número."""
+    for apelido in ("ipca12m", "igpm12m"):
+        item = itens[apelido]
+        if item["ultima"]:
+            fim = item["ultima"]["data"]
+            ano, mes = int(fim[:4]), int(fim[5:7])
+            inicio = f"{ano - 1 if mes < 12 else ano}-{mes % 12 + 1:02d}-01"
+            item["detalhe"] = ["Janela", f"{_mes_br(inicio)} a {_mes_br(fim)}"]
     ipca12m, juro = itens["ipca12m"], itens["juroreal"]
-    if ipca12m["ultima"]:
-        fim = ipca12m["ultima"]["data"]
-        ano, mes = int(fim[:4]), int(fim[5:7])
-        inicio = f"{ano - 1 if mes < 12 else ano}-{mes % 12 + 1:02d}-01"
-        ipca12m["detalhe"] = ["Janela", f"{_mes_br(inicio)} a {_mes_br(fim)}"]
     if juro["ultima"] and itens["selic"]["ultima"] and ipca12m["ultima"]:
         selic = itens["selic"]["ultima"]["valor_br"]
         juro["detalhe"] = ["Selic ÷ IPCA 12m", f"{selic} ÷ {ipca12m['ultima']['valor_br']}"]
 
 
-def _pagina() -> bytes:
-    return resources.files("bcb_indicadores").joinpath("web_index.html").read_bytes()
+def _pagina(estatico: bool = False) -> bytes:
+    html = resources.files("bcb_indicadores").joinpath("web_index.html").read_text("utf-8")
+    if estatico:
+        html = html.replace(MARCADOR_MODO, "<script>window.BCB_ESTATICO = true;</script>", 1)
+    return html.encode("utf-8")
+
+
+def gerar_site(caminho_banco: str | Path, pasta: str | Path) -> int:
+    """Gera o site estático em ``pasta``: index.html + dados/*.json e dados/*.csv.
+
+    Devolve a quantidade de indicadores exportados.
+    """
+    pasta = Path(pasta)
+    dados = pasta / "dados"
+    dados.mkdir(parents=True, exist_ok=True)
+    aplicacao = Aplicacao(caminho_banco, ClienteSGS)
+
+    resumo = aplicacao.resumo()
+    resumo["banco"] = None  # não publica o caminho do arquivo local
+    _gravar_json(dados / "resumo.json", resumo)
+
+    indicadores = [*SERIES, *DERIVADAS]
+    for serie in indicadores:
+        _gravar_json(dados / f"{serie.apelido}.json", aplicacao.observacoes(serie))
+        (dados / f"{serie.apelido}.csv").write_bytes(aplicacao.csv(serie))
+    (pasta / "index.html").write_bytes(_pagina(estatico=True))
+    # Sem isto o GitHub Pages trata a pasta com Jekyll, o que é desnecessário aqui.
+    (pasta / ".nojekyll").write_text("")
+    return len(indicadores)
+
+
+def _gravar_json(caminho: Path, dados: object) -> None:
+    caminho.write_text(json.dumps(dados, ensure_ascii=False, separators=(",", ":")), "utf-8")
 
 
 def criar_servidor(aplicacao: Aplicacao, porta: int = PORTA_PADRAO) -> ThreadingHTTPServer:
@@ -277,6 +333,17 @@ def criar_servidor(aplicacao: Aplicacao, porta: int = PORTA_PADRAO) -> Threading
     return ThreadingHTTPServer((HOST, porta), Manipulador)
 
 
+def ja_esta_rodando(porta: int) -> bool:
+    """Verifica se a interface do bcb-indicadores já responde nessa porta."""
+    import requests
+
+    try:
+        r = requests.get(f"http://{HOST}:{porta}/api/resumo", timeout=2)
+        return r.ok and "series" in r.json()
+    except (requests.RequestException, ValueError):
+        return False
+
+
 def servir(
     caminho_banco: str | Path,
     porta: int = PORTA_PADRAO,
@@ -285,7 +352,19 @@ def servir(
 ) -> None:
     """Inicia o servidor e bloqueia até Ctrl+C."""
     aplicacao = Aplicacao(caminho_banco, lambda: cliente or ClienteSGS())
-    with criar_servidor(aplicacao, porta) as servidor:
+    try:
+        servidor = criar_servidor(aplicacao, porta)
+    except OSError:
+        # Porta ocupada. Se for a própria interface (aberta antes, por exemplo
+        # pelo atalho do menu), só abre o navegador em vez de falhar.
+        if not ja_esta_rodando(porta):
+            raise
+        endereco = f"http://{HOST}:{porta}/"
+        print(f"A interface já está aberta em {endereco}")
+        if abrir_navegador:
+            webbrowser.open(endereco)
+        return
+    with servidor:
         endereco = f"http://{HOST}:{servidor.server_address[1]}/"
         print(f"Interface disponível em {endereco}")
         print("Pressione Ctrl+C para encerrar.", flush=True)

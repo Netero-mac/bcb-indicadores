@@ -122,7 +122,7 @@ def test_exportar_serie_sem_dados(db, tmp_path, capsys):
 @pytest.mark.parametrize(
     ("args", "mensagem"),
     [
-        (["ultimos", "euro"], "Série desconhecida"),
+        (["ultimos", "libra"], "Série desconhecida"),
         (["ultimos", "selic", "--n", "0"], "inteiro positivo"),
         (["coletar", "--desde", "2026-01-01"], "use dd/mm/aaaa"),
         (["exportar", "selic"], "--csv"),
@@ -146,3 +146,53 @@ def test_banco_pela_variavel_de_ambiente(tmp_path, monkeypatch, cliente):
 def test_coleta_padrao_vai_ate_hoje(db, cliente):
     rodar(db, "coletar", "--series", "cdi", "--desde", "01/01/2026", cliente=cliente)
     assert cliente.chamadas[-1][2] == date.today()
+
+
+def test_exportar_com_periodo(db, cliente, tmp_path, capsys):
+    rodar(db, "coletar", *PERIODO, cliente=cliente)
+    destino = tmp_path / "selic.csv"
+    assert rodar(db, "exportar", "selic", "--csv", str(destino), "--desde", "01/01/2026") == 0
+    assert destino.read_text().splitlines() == ["data,valor", "2026-09-10,14.00"]
+    assert "1 linhas" in capsys.readouterr().out
+
+
+def test_exportar_periodo_vazio_ou_invertido(db, cliente, tmp_path, capsys):
+    rodar(db, "coletar", *PERIODO, cliente=cliente)
+    destino = str(tmp_path / "x.csv")
+    capsys.readouterr()
+    assert rodar(db, "exportar", "selic", "--csv", destino, "--desde", "01/01/2030") == 1
+    assert "Nenhuma observação" in capsys.readouterr().err
+    args = ["--desde", "01/01/2026", "--ate", "01/01/2025"]
+    assert rodar(db, "exportar", "selic", "--csv", destino, *args) == 1
+    assert "posterior" in capsys.readouterr().err
+
+
+def test_ultimos_e_exportar_aceitam_derivados(db, tmp_path, capsys):
+    ipca = [obs(f"2025-{m:02d}-01", "1") for m in range(1, 13)]
+    rodar(db, "coletar", *PERIODO, cliente=ClienteFalso({433: ipca}))
+    capsys.readouterr()
+
+    assert rodar(db, "ultimos", "ipca12m") == 0
+    saida = capsys.readouterr().out
+    assert "IPCA 12 meses (calculado)" in saida
+    assert "12,68" in saida  # 1% ao mês, composto
+
+    destino = tmp_path / "ipca12m.csv"
+    assert rodar(db, "exportar", "ipca12m", "--csv", str(destino)) == 0
+    assert destino.read_text().splitlines() == ["data,valor", "2025-12-01,12.682503"]
+
+
+def test_derivado_sem_dados(db, capsys):
+    assert rodar(db, "ultimos", "juroreal") == 1
+    assert "Rode primeiro: bcb-indicadores coletar" in capsys.readouterr().err
+
+
+def test_site_estatico(db, cliente, tmp_path, capsys):
+    rodar(db, "coletar", *PERIODO, cliente=cliente)
+    saida = tmp_path / "site"
+    assert rodar(db, "site", "--saida", str(saida)) == 0
+    assert "Site com 11 indicadores" in capsys.readouterr().out
+    assert (saida / ".nojekyll").exists()
+    assert "window.BCB_ESTATICO = true" in (saida / "index.html").read_text()
+    assert (saida / "dados" / "juroreal.json").exists()
+    assert (saida / "dados" / "selic.csv").read_text().startswith("data,valor\n")

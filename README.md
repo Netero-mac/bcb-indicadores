@@ -6,7 +6,8 @@
 
 Ferramenta de linha de comando que coleta indicadores econômicos da
 [API SGS do Banco Central do Brasil](https://dadosabertos.bcb.gov.br/), guarda
-os dados em SQLite e mostra relatórios no terminal ou numa interface no navegador.
+os dados em SQLite e mostra relatórios no terminal, numa interface no navegador
+ou num [painel publicado no GitHub Pages](https://netero-mac.github.io/bcb-indicadores/).
 
 | Série            | Código SGS | Apelido na CLI | Unidade | Periodicidade |
 | ---------------- | ---------: | -------------- | ------- | ------------- |
@@ -14,9 +15,18 @@ os dados em SQLite e mostra relatórios no terminal ou numa interface no navegad
 | IPCA mensal      |        433 | `ipca`         | % a.m.  | mensal        |
 | Dólar PTAX venda |          1 | `dolar`        | R$      | diária        |
 | CDI diário       |         12 | `cdi`          | % a.d.  | diária        |
+| IGP-M mensal     |        189 | `igpm`         | % a.m.  | mensal        |
+| Euro PTAX venda  |      21620 | `euro`         | R$      | diária        |
+| Poupança         |        195 | `poupanca`     | % a.m.  | diária        |
+| IBC-Br dessaz.   |      24364 | `ibcbr`        | índice  | mensal        |
 
-Além dessas, o projeto calcula dois **indicadores derivados** a partir das séries gravadas:
-**IPCA acumulado em 12 meses** e **juro real** (Selic descontada do IPCA 12 meses).
+Além dessas, o projeto calcula três **indicadores derivados** a partir das séries gravadas:
+
+| Indicador      | Apelido na CLI | Como é calculado                                           |
+| -------------- | -------------- | ---------------------------------------------------------- |
+| IPCA 12 meses  | `ipca12m`      | IPCA dos 12 últimos meses, composto                        |
+| IGP-M 12 meses | `igpm12m`      | IGP-M dos 12 últimos meses, composto (reajuste de aluguel) |
+| Juro real      | `juroreal`     | Selic descontada do IPCA 12 meses (equação de Fisher)      |
 
 **Destaques**
 
@@ -24,9 +34,12 @@ Além dessas, o projeto calcula dois **indicadores derivados** a partir das sér
 - Respeita o limite da API de **10 anos por consulta** em séries diárias, dividindo o período em janelas.
 - Cliente HTTP com **timeout e retentativas** com espera crescente (backoff).
 - Valores tratados com `Decimal`, sem erros de arredondamento de ponto flutuante.
-- **Interface web local** (`bcb-indicadores web`) com cartões, gráficos interativos e download em CSV.
+- **Interface web** com cartões, gráficos interativos, comparação de séries, simulador de
+  rendimento e CSV por período; roda no seu computador ou como **site estático no GitHub Pages**,
+  atualizado sozinho todo dia.
+- **Coleta agendada** (`agendar`) e **atalho no menu de aplicativos** (`atalho`), para usar sem terminal.
 - Uma única dependência externa (`requests`); banco com `sqlite3` da biblioteca padrão.
-- **135 testes** com pytest, que rodam **sem internet**, usando respostas reais gravadas da API.
+- **161 testes** com pytest, que rodam **sem internet**, usando respostas reais gravadas da API.
 - CI no GitHub Actions: ruff + pytest no Linux e no Windows a cada push.
 
 ## Instalação
@@ -68,11 +81,15 @@ bcb-indicadores [--banco ARQUIVO] [-v] COMANDO
   coletar   [--series SÉRIE ...] [--desde DD/MM/AAAA] [--ate DD/MM/AAAA]
   ultimos   SÉRIE [--n 10]
   resumo
-  exportar  SÉRIE --csv ARQUIVO
+  exportar  SÉRIE --csv ARQUIVO [--desde DD/MM/AAAA] [--ate DD/MM/AAAA]
   web       [--porta 8000] [--nao-abrir]
+  site      --saida PASTA
+  agendar   [--hora HH:MM] [--remover]
+  atalho    [--remover]
 ```
 
-A série pode ser informada pelo apelido (`selic`) ou pelo código (`432`). O banco
+A série pode ser informada pelo apelido (`selic`) ou pelo código (`432`). Em `ultimos`
+e `exportar` também valem os derivados (`ipca12m`, `igpm12m`, `juroreal`). O banco
 padrão é `bcb_indicadores.db` na pasta atual; dá para trocar com `--banco` ou com
 a variável de ambiente `BCB_INDICADORES_DB`.
 
@@ -137,14 +154,19 @@ Data        Valor
 
 ```console
 $ bcb-indicadores resumo
-Série             Unidade   Data          Último           Var. 12m  Média 12m
-----------------  --------  ----------  --------  -----------------  ---------
-Selic meta        % a.a.    19/11/2026     13,75         -1,25 p.p.      14,47
-IPCA mensal       % a.m.    01/10/2026      0,14         +0,05 p.p.       0,38
-Dólar PTAX venda  R$        19/11/2026    5,8889  +0,5543 (+10,39%)     5,2035
-CDI diário        % a.d.    18/11/2026  0,050788     -0,004343 p.p.   0,053285
-IPCA 12 meses     % em 12m  01/10/2026      4,63         -0,05 p.p.       4,40
-Juro real         % a.a.    19/11/2026      8,72         -1,37 p.p.       9,55
+Série                   Unidade   Data          Último           Var. 12m  Média 12m
+----------------------  --------  ----------  --------  -----------------  ---------
+Selic meta              % a.a.    19/11/2026     13,75         -1,25 p.p.      14,47
+IPCA mensal             % a.m.    01/10/2026      0,14         +0,05 p.p.       0,38
+Dólar PTAX venda        R$        19/11/2026    5,8889  +0,5543 (+10,39%)     5,2035
+CDI diário              % a.d.    18/11/2026  0,050788     -0,004343 p.p.   0,053285
+IGP-M mensal            % a.m.    01/10/2026      1,47         +1,83 p.p.       0,43
+Euro PTAX venda         R$        19/11/2026    6,4659   +0,3073 (+4,99%)     6,0105
+Poupança                % a.m.    18/11/2026    0,6701       -0,0036 p.p.     0,6619
+IBC-Br dessazonalizado  índice    01/09/2026    109,78     +0,94 (+0,86%)     110,14
+IPCA 12 meses           % em 12m  01/10/2026      4,63         -0,05 p.p.       4,40
+IGP-M 12 meses          % em 12m  01/10/2026      5,25         +4,32 p.p.       1,07
+Juro real               % a.a.    19/11/2026      8,72         -1,37 p.p.       9,55
 ```
 
 Como cada coluna é calculada (sempre em relação à data da última observação, D):
@@ -177,6 +199,13 @@ data,valor
 2000-01-04,1.8337
 ```
 
+Com `--desde` e `--ate`, exporta só um período:
+
+```console
+$ bcb-indicadores exportar ipca12m --csv ipca12m.csv --desde 01/01/2026
+10 linhas de IPCA 12 meses exportadas para ipca12m.csv
+```
+
 ### `web`: interface no navegador
 
 Para ver os dados sem usar o terminal:
@@ -189,28 +218,67 @@ Pressione Ctrl+C para encerrar.
 
 O navegador abre sozinho com:
 
-- um **cartão por indicador** (as quatro séries e os dois derivados) com último valor, variação de 12 meses e média ou composição do cálculo (os mesmos números do `resumo`);
-- **gráfico** da série escolhida, com períodos de 1, 5 ou 10 anos ou o histórico todo, e data e valor ao passar o mouse;
-- tabela com as **últimas observações** e botão para **baixar o CSV**;
+- **cartões** agrupados em juros, inflação e câmbio/atividade, com último valor, variação de
+  12 meses e média ou composição do cálculo (os mesmos números do `resumo`);
+- **gráfico** do indicador escolhido, com períodos de 1, 5 ou 10 anos, o histórico todo ou
+  datas escolhidas (de/até), e data e valor ao passar o mouse;
+- **comparação** com outro indicador no mesmo gráfico, com um eixo para cada um (ex.: Selic × IPCA 12 meses);
+- tabela com as **últimas observações** e download em CSV do **período escolhido** ou da série completa;
+- **simulador**: quanto rendeu um valor aplicado a um percentual do CDI entre duas datas,
+  comparado com a poupança e com a inflação (ganho real). Valores brutos, sem IR;
 - botão **Atualizar dados**, que faz a mesma coisa que o `coletar` (com o banco vazio, baixa o histórico desde 2000).
 
 O servidor usa só a biblioteca padrão (`http.server`), escuta apenas em `127.0.0.1`
 (não fica acessível para outros computadores da rede) e funciona sem internet para
 consultar o que já está no banco. O gráfico é desenhado em SVG, sem bibliotecas
-externas. Se a porta 8000 estiver ocupada, use `--porta 8080`.
+externas. Se a porta 8000 estiver ocupada, use `--porta 8080`; se a própria interface
+já estiver aberta nessa porta, o comando só abre o navegador.
+
+### `agendar` e `atalho`: usar sem terminal
+
+```console
+$ bcb-indicadores agendar
+Coleta agendada todos os dias às 19:00 (timer do systemd bcb-indicadores-coleta.timer). Se o computador estiver desligado no horário, ela roda quando ele ligar.
+Histórico: journalctl --user -u bcb-indicadores-coleta
+
+$ bcb-indicadores atalho
+Atalho criado: procure por "Indicadores BCB" no menu de aplicativos.
+```
+
+- `agendar` usa um timer do systemd do usuário no Linux (não pede senha de administrador),
+  o crontab em outros sistemas Unix e o Agendador de Tarefas no Windows. Troque o horário
+  com `--hora 08:30` e desfaça com `--remover`.
+- `atalho` cria a entrada "Indicadores BCB" no menu de aplicativos (Linux) ou no Menu Iniciar
+  (Windows), que abre a interface sem janela de terminal. Desfaça com `--remover`.
+- Os dois gravam o caminho absoluto do banco e do Python do ambiente virtual atual, então
+  continuam funcionando de qualquer pasta.
+
+### `site`: painel online no GitHub Pages
+
+`bcb-indicadores site --saida _site` gera a mesma interface como site estático: um
+`index.html` e os dados em `dados/*.json` e `dados/*.csv`, sem o botão de coleta e sem
+o caminho do banco local.
+
+O workflow `.github/workflows/pages.yml` faz isso sozinho no GitHub Actions, todo dia às
+19h30 (horário de Brasília), quando a interface muda na `main` ou manualmente pela aba
+**Actions → Publicar painel → Run workflow**. O banco fica no cache do Actions, então
+cada execução só baixa o que é novo. Se o banco estiver vazio, a publicação é cancelada,
+para nunca trocar um painel com dados por um vazio.
+
+Para ativar num fork: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
 ### Erros amigáveis
 
 ```console
-$ bcb-indicadores ultimos euro
+$ bcb-indicadores ultimos libra
 usage: bcb-indicadores ultimos [-h] [--n N] SÉRIE
-bcb-indicadores ultimos: error: argument SÉRIE: Série desconhecida: 'euro'. Opções: selic (432), ipca (433), dolar (1), cdi (12)
+bcb-indicadores ultimos: error: argument SÉRIE: Série desconhecida: 'libra'. Opções: selic (432), ipca (433), dolar (1), cdi (12), igpm (189), euro (21620), poupanca (195), ibcbr (24364); derivados: ipca12m, igpm12m, juroreal
 ```
 
 ## Testes e qualidade
 
 ```bash
-pytest               # 135 testes, sem acesso à internet
+pytest               # 161 testes, sem acesso à internet
 ruff check .         # lint
 ruff format --check .
 ```
@@ -230,7 +298,9 @@ com `unittest.mock` ou substituído por um cliente falso. Eles cobrem:
 - **Indicadores derivados**: juros compostos, janela de 12 meses na virada do ano, meses faltando,
   Selic do fim do mês, ano bissexto e equação de Fisher.
 - **Interface web**: todas as rotas com um servidor real numa porta livre, CSV, coleta pelo botão,
-  bloqueio de coletas simultâneas e de requisições de outros sites.
+  bloqueio de coletas simultâneas e de requisições de outros sites, site estático.
+- **Agendamento e atalho**: arquivos do systemd, crontab (sem apagar outras linhas), `schtasks`
+  e atalho do Windows, com caminhos com espaço, sempre com um executor falso, sem mexer no sistema.
 
 ## Decisões técnicas
 
@@ -274,7 +344,9 @@ com `unittest.mock` ou substituído por um cliente falso. Eles cobrem:
 
 ```text
 bcb-indicadores/
-├── .github/workflows/ci.yml    # ruff + pytest (Linux e Windows) a cada push
+├── .github/workflows/
+│   ├── ci.yml                  # ruff + pytest (Linux e Windows) a cada push
+│   └── pages.yml               # coleta diária e publicação no GitHub Pages
 ├── src/bcb_indicadores/
 │   ├── __init__.py
 │   ├── __main__.py             # permite `python -m bcb_indicadores`
@@ -286,6 +358,8 @@ bcb-indicadores/
 │   ├── formatacao.py           # números/datas no padrão brasileiro e tabelas
 │   ├── web.py                  # servidor da interface web (http.server)
 │   ├── web_index.html          # página da interface (HTML, CSS e JS sem dependências)
+│   ├── sistema.py              # agendamento da coleta e atalho no menu (Linux/Windows)
+│   ├── icone.svg               # ícone do atalho
 │   └── datas.py                # aritmética de datas (ex.: 29/02 menos 1 ano)
 ├── tests/
 │   ├── fixtures/               # respostas reais gravadas da API
@@ -297,7 +371,8 @@ bcb-indicadores/
 │   ├── test_derivados.py
 │   ├── test_formatacao.py
 │   ├── test_cli.py
-│   └── test_web.py
+│   ├── test_web.py
+│   └── test_sistema.py
 ├── pyproject.toml              # metadados, dependências, pytest e ruff
 └── README.md
 ```
@@ -306,7 +381,7 @@ bcb-indicadores/
 
 - Opção `--formato excel` no CSV (ponto e vírgula e vírgula decimal).
 - Exportação para Parquet.
-- Agendamento diário da coleta (cron ou Agendador de Tarefas do Windows).
+- Atalho e agendamento com "recuperar execução perdida" também no macOS (launchd).
 
 ## Fonte dos dados
 

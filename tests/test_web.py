@@ -7,6 +7,7 @@ import requests
 
 from bcb_indicadores import banco
 from bcb_indicadores.cli import main
+from bcb_indicadores.series import SERIES
 from bcb_indicadores.web import CABECALHO_ACAO, Aplicacao, criar_servidor
 from tests.conftest import ClienteFalso, obs
 
@@ -56,8 +57,11 @@ def test_pagina_inicial(url):
 def test_resumo_com_banco_vazio(url):
     dados = requests.get(f"{url}/api/resumo", timeout=5).json()
     assert [s["apelido"] for s in dados["series"]] == [
-        "selic", "cdi", "juroreal", "ipca", "ipca12m", "dolar",
+        "selic", "cdi", "juroreal", "poupanca",
+        "ipca", "ipca12m", "igpm", "igpm12m",
+        "dolar", "euro", "ibcbr",
     ]  # fmt: skip
+    assert [s["grupo"] for s in dados["series"]][::4] == ["Juros", "Inflação", "Câmbio e atividade"]
     assert all(s["ultima"] is None for s in dados["series"])
 
 
@@ -98,7 +102,7 @@ def test_csv_da_serie(url, caminho_banco):
 
 
 def test_serie_desconhecida(url):
-    r = requests.get(f"{url}/api/series/euro", timeout=5)
+    r = requests.get(f"{url}/api/series/libra", timeout=5)
     assert r.status_code == 404
     assert "Série desconhecida" in r.json()["erro"]
 
@@ -113,7 +117,7 @@ def test_coletar_grava_no_banco(url, cliente):
     resultados = {item["nome"]: item for item in r.json()["resultados"]}
     assert resultados["Selic meta"]["inseridos"] == 2
     assert resultados["IPCA mensal"]["inseridos"] == 0
-    assert {codigo for codigo, *_ in cliente.chamadas} == {432, 433, 1, 12}
+    assert {codigo for codigo, *_ in cliente.chamadas} == {s.codigo for s in SERIES}
 
     serie = requests.get(f"{url}/api/series/selic", timeout=5).json()
     assert len(serie["observacoes"]) == 2
@@ -209,3 +213,38 @@ def test_observacoes_e_csv_dos_derivados(url, caminho_banco):
     linhas = requests.get(f"{url}/api/series/juroreal.csv", timeout=5).text.splitlines()
     assert linhas[0] == "data,valor"
     assert [linha.split(",")[0] for linha in linhas[1:]] == ["2026-10-01", "2026-11-19"]
+
+
+def test_site_estatico_nao_publica_caminho_do_banco(caminho_banco, tmp_path):
+    import json
+
+    from bcb_indicadores.web import gerar_site
+
+    gravar_dados(caminho_banco)
+    assert gerar_site(caminho_banco, tmp_path / "site") == 11
+    resumo = json.loads((tmp_path / "site" / "dados" / "resumo.json").read_text())
+    assert resumo["banco"] is None
+    assert len(resumo["series"]) == 11
+    selic = json.loads((tmp_path / "site" / "dados" / "selic.json").read_text())
+    assert selic["observacoes"] == [["2025-09-10", "15.00"], ["2026-09-10", "14.00"]]
+
+
+def test_pagina_do_servidor_nao_e_estatica(url):
+    assert "BCB_ESTATICO = true" not in requests.get(url, timeout=5).text
+
+
+def test_web_reaproveita_interface_ja_aberta(url, capsys, monkeypatch):
+    from bcb_indicadores import web
+
+    abertos = []
+    monkeypatch.setattr(web.webbrowser, "open", abertos.append)
+    porta = int(url.rsplit(":", 1)[1])
+    web.servir("ignorado.db", porta)  # porta ocupada pela própria interface
+    assert abertos == [f"http://127.0.0.1:{porta}/"]
+    assert "já está aberta" in capsys.readouterr().out
+
+
+def test_ja_esta_rodando_em_porta_livre():
+    from bcb_indicadores.web import ja_esta_rodando
+
+    assert ja_esta_rodando(1) is False

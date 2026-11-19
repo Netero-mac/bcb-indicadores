@@ -4,8 +4,11 @@ Uso:
     bcb-indicadores coletar [--series selic ipca] [--desde dd/mm/aaaa] [--ate dd/mm/aaaa]
     bcb-indicadores ultimos <série> [--n 10]
     bcb-indicadores resumo
-    bcb-indicadores exportar <série> --csv arquivo.csv
+    bcb-indicadores exportar <série> --csv arquivo.csv [--desde dd/mm/aaaa] [--ate dd/mm/aaaa]
     bcb-indicadores web [--porta 8000] [--nao-abrir]
+    bcb-indicadores site --saida pasta
+    bcb-indicadores agendar [--hora 19:00] [--remover]
+    bcb-indicadores atalho [--remover]
 """
 
 from __future__ import annotations
@@ -23,8 +26,13 @@ from bcb_indicadores import __version__, banco
 from bcb_indicadores.cliente import ClienteSGS, ErroAPI, parse_data
 from bcb_indicadores.coleta import Cliente, coletar_serie
 from bcb_indicadores.formatacao import TRACO, data_br, numero_br, tabela
-from bcb_indicadores.relatorios import ResumoSerie, resumo_do_banco, resumos_derivados
-from bcb_indicadores.series import SERIES, Serie, buscar_serie
+from bcb_indicadores.relatorios import (
+    ResumoSerie,
+    observacoes_do_indicador,
+    resumo_do_banco,
+    resumos_derivados,
+)
+from bcb_indicadores.series import DERIVADAS, SERIES, Derivada, Serie, buscar_derivada, buscar_serie
 
 BANCO_PADRAO = "bcb_indicadores.db"
 VARIAVEL_BANCO = "BCB_INDICADORES_DB"
@@ -43,6 +51,18 @@ def _tipo_serie(texto: str) -> Serie:
         return buscar_serie(texto)
     except KeyError as erro:
         raise argparse.ArgumentTypeError(erro.args[0]) from erro
+
+
+def _tipo_indicador(texto: str) -> Serie | Derivada:
+    """Como ``_tipo_serie``, mas aceita também os indicadores derivados (ex.: ipca12m)."""
+    derivada = buscar_derivada(texto)
+    if derivada is not None:
+        return derivada
+    try:
+        return buscar_serie(texto)
+    except KeyError as erro:
+        extras = ", ".join(d.apelido for d in DERIVADAS)
+        raise argparse.ArgumentTypeError(f"{erro.args[0]}; derivados: {extras}") from erro
 
 
 def _tipo_data(texto: str) -> date:
@@ -110,7 +130,9 @@ def criar_parser() -> argparse.ArgumentParser:
     p.set_defaults(funcao=cmd_coletar)
 
     p = sub.add_parser("ultimos", help="mostra as últimas observações de uma série")
-    p.add_argument("serie", type=_tipo_serie, metavar="SÉRIE", help="apelido ou código da série")
+    p.add_argument(
+        "serie", type=_tipo_indicador, metavar="SÉRIE", help="apelido, código ou derivado"
+    )
     p.add_argument("--n", type=_tipo_positivo, default=10, help="quantidade (padrão: 10)")
     p.set_defaults(funcao=cmd_ultimos)
 
@@ -118,9 +140,26 @@ def criar_parser() -> argparse.ArgumentParser:
     p.set_defaults(funcao=cmd_resumo)
 
     p = sub.add_parser("exportar", help="exporta uma série para CSV")
-    p.add_argument("serie", type=_tipo_serie, metavar="SÉRIE", help="apelido ou código da série")
+    p.add_argument(
+        "serie", type=_tipo_indicador, metavar="SÉRIE", help="apelido, código ou derivado"
+    )
     p.add_argument("--csv", type=Path, required=True, metavar="ARQUIVO", help="arquivo de saída")
+    p.add_argument("--desde", type=_tipo_data, metavar="DD/MM/AAAA", help="data inicial")
+    p.add_argument("--ate", type=_tipo_data, metavar="DD/MM/AAAA", help="data final")
     p.set_defaults(funcao=cmd_exportar)
+
+    p = sub.add_parser("site", help="gera a interface como site estático (ex.: GitHub Pages)")
+    p.add_argument("--saida", type=Path, required=True, metavar="PASTA", help="pasta de saída")
+    p.set_defaults(funcao=cmd_site)
+
+    p = sub.add_parser("agendar", help="agenda a coleta para rodar sozinha todo dia")
+    p.add_argument("--hora", default="19:00", metavar="HH:MM", help="horário (padrão: 19:00)")
+    p.add_argument("--remover", action="store_true", help="remove o agendamento")
+    p.set_defaults(funcao=cmd_agendar)
+
+    p = sub.add_parser("atalho", help="cria um atalho da interface no menu de aplicativos")
+    p.add_argument("--remover", action="store_true", help="remove o atalho")
+    p.set_defaults(funcao=cmd_atalho)
 
     p = sub.add_parser("web", help="abre uma interface no navegador para ver os dados")
     p.add_argument(
@@ -158,13 +197,17 @@ def cmd_coletar(args: argparse.Namespace, cliente: Cliente | None) -> int:
 
 
 def cmd_ultimos(args: argparse.Namespace, _cliente: Cliente | None) -> int:
-    serie: Serie = args.serie
+    serie: Serie | Derivada = args.serie
     with banco.abrir_banco(args.banco) as conexao:
-        observacoes = banco.ultimos(conexao, serie.codigo, args.n)
+        if isinstance(serie, Derivada):
+            observacoes = observacoes_do_indicador(conexao, serie)[-args.n :]
+        else:
+            observacoes = banco.ultimos(conexao, serie.codigo, args.n)
     if not observacoes:
         return _sem_dados(serie)
 
-    print(f"{serie.nome} (código {serie.codigo}) — em {serie.unidade}\n")
+    origem = "calculado" if isinstance(serie, Derivada) else f"código {serie.codigo}"
+    print(f"{serie.nome} ({origem}) — em {serie.unidade}\n")
     linhas = [[data_br(o.data), numero_br(o.valor, serie.casas)] for o in observacoes]
     print(tabela(["Data", "Valor"], linhas, direita={1}))
     return OK
@@ -208,11 +251,22 @@ def _linha_resumo(r: ResumoSerie) -> list[str]:
 
 
 def cmd_exportar(args: argparse.Namespace, _cliente: Cliente | None) -> int:
-    serie: Serie = args.serie
+    serie: Serie | Derivada = args.serie
     with banco.abrir_banco(args.banco) as conexao:
-        observacoes = banco.listar(conexao, serie.codigo)
+        observacoes = observacoes_do_indicador(conexao, serie)
     if not observacoes:
         return _sem_dados(serie)
+    if args.desde and args.ate and args.desde > args.ate:
+        print("A data inicial é posterior à data final.", file=sys.stderr)
+        return ERRO
+    observacoes = [
+        o
+        for o in observacoes
+        if (args.desde is None or o.data >= args.desde) and (args.ate is None or o.data <= args.ate)
+    ]
+    if not observacoes:
+        print(f"Nenhuma observação de {serie.nome} no período informado.", file=sys.stderr)
+        return ERRO
 
     # CSV "universal": separador vírgula, ponto decimal e data ISO, fácil de
     # ler no pandas, R, planilhas e bancos de dados.
@@ -237,10 +291,43 @@ def cmd_web(args: argparse.Namespace, cliente: Cliente | None) -> int:
     return OK
 
 
-def _sem_dados(serie: Serie) -> int:
+def cmd_site(args: argparse.Namespace, _cliente: Cliente | None) -> int:
+    from bcb_indicadores import web
+
+    total = web.gerar_site(args.banco, args.saida)
+    print(f"Site com {total} indicadores gerado em {args.saida}")
+    return OK
+
+
+def cmd_agendar(args: argparse.Namespace, _cliente: Cliente | None) -> int:
+    from bcb_indicadores import sistema
+
+    try:
+        if args.remover:
+            print(sistema.desagendar())
+        else:
+            print(sistema.agendar(args.banco, args.hora))
+    except sistema.ErroSistema as erro:
+        print(f"Não foi possível configurar o agendamento: {erro}", file=sys.stderr)
+        return ERRO
+    return OK
+
+
+def cmd_atalho(args: argparse.Namespace, _cliente: Cliente | None) -> int:
+    from bcb_indicadores import sistema
+
+    try:
+        print(sistema.remover_atalho() if args.remover else sistema.criar_atalho(args.banco))
+    except sistema.ErroSistema as erro:
+        print(f"Não foi possível criar o atalho: {erro}", file=sys.stderr)
+        return ERRO
+    return OK
+
+
+def _sem_dados(serie: Serie | Derivada) -> int:
+    comando = "coletar" if isinstance(serie, Derivada) else f"coletar --series {serie.apelido}"
     print(
-        f"Nenhum dado de {serie.nome} no banco. "
-        f"Rode primeiro: bcb-indicadores coletar --series {serie.apelido}",
+        f"Nenhum dado de {serie.nome} no banco. Rode primeiro: bcb-indicadores {comando}",
         file=sys.stderr,
     )
     return ERRO

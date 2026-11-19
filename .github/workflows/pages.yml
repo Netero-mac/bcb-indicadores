@@ -1,0 +1,74 @@
+name: Publicar painel
+
+# Coleta os dados do Banco Central e publica a interface no GitHub Pages:
+# todo dia às 19h30 (horário de Brasília), quando a interface muda na main
+# e manualmente pela aba Actions ("Run workflow").
+on:
+  schedule:
+    - cron: "30 22 * * *"
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Uma publicação por vez; uma nova não cancela a que já está em andamento.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  gerar:
+    name: Coletar e gerar o site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Instalar
+        run: pip install .
+
+      # O banco fica guardado no cache entre execuções: assim cada coleta só
+      # baixa o que é novo, em vez de todo o histórico desde 2000.
+      - name: Restaurar banco
+        uses: actions/cache@v4
+        with:
+          path: bcb_indicadores.db
+          key: banco-${{ github.run_id }}
+          restore-keys: banco-
+
+      - name: Coletar
+        # Se uma série falhar (API instável), publica as demais mesmo assim.
+        run: bcb-indicadores coletar || echo "::warning::Alguma série falhou na coleta; veja o log acima."
+
+      - name: Conferir dados
+        # Falha (e não publica) se o banco estiver vazio, para nunca trocar um
+        # painel com dados por um painel vazio.
+        run: bcb-indicadores resumo
+
+      - name: Gerar site
+        run: bcb-indicadores site --saida _site
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  publicar:
+    name: Publicar no GitHub Pages
+    needs: gerar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
