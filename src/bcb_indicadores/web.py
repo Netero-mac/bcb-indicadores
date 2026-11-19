@@ -30,8 +30,8 @@ from bcb_indicadores import banco
 from bcb_indicadores.cliente import ClienteSGS, ErroAPI
 from bcb_indicadores.coleta import Cliente, coletar_serie
 from bcb_indicadores.formatacao import data_br, numero_br
-from bcb_indicadores.relatorios import resumo_do_banco
-from bcb_indicadores.series import SERIES, Serie, buscar_serie
+from bcb_indicadores.relatorios import ResumoSerie, derivadas_do_banco, resumir, resumo_do_banco
+from bcb_indicadores.series import DERIVADAS, SERIES, Derivada, Serie, buscar_derivada, buscar_serie
 
 HOST = "127.0.0.1"
 PORTA_PADRAO = 8000
@@ -40,6 +40,13 @@ PORTA_PADRAO = 8000
 # uma permissão de CORS que este servidor nunca concede, o que impede que
 # outra página aberta no navegador dispare coletas.
 CABECALHO_ACAO = "X-BCB-Indicadores"
+
+# Ordem dos cartões na página: juros na primeira linha, inflação e câmbio na segunda.
+ORDEM_CARTOES = ("selic", "cdi", "juroreal", "ipca", "ipca12m", "dolar")
+
+MESES = ("jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez")
+
+Indicador = Serie | Derivada
 
 logger = logging.getLogger(__name__)
 
@@ -54,21 +61,35 @@ class Aplicacao:
 
     def resumo(self) -> dict:
         with banco.abrir_banco(self.caminho_banco) as conexao:
-            series = [_resumo_json(conexao, serie) for serie in SERIES]
-        return {"banco": str(self.caminho_banco), "series": series}
+            itens = {
+                s.apelido: _resumo_json(
+                    resumo_do_banco(conexao, s), banco.contar(conexao, s.codigo)
+                )
+                for s in SERIES
+            }
+            derivadas = derivadas_do_banco(conexao)
+        for d in DERIVADAS:
+            observacoes = derivadas[d.apelido]
+            itens[d.apelido] = _resumo_json(resumir(d, observacoes), len(observacoes))
+        _detalhes_derivados(itens)
+        return {"banco": str(self.caminho_banco), "series": [itens[a] for a in ORDEM_CARTOES]}
 
-    def observacoes(self, serie: Serie) -> dict:
+    def _listar(self, serie: Indicador) -> list:
         with banco.abrir_banco(self.caminho_banco) as conexao:
-            observacoes = banco.listar(conexao, serie.codigo)
+            if isinstance(serie, Derivada):
+                return derivadas_do_banco(conexao)[serie.apelido]
+            return banco.listar(conexao, serie.codigo)
+
+    def observacoes(self, serie: Indicador) -> dict:
+        observacoes = self._listar(serie)
         return {
             "apelido": serie.apelido,
             # Valores como texto para não perder casas decimais; o navegador converte.
             "observacoes": [[o.data.isoformat(), str(o.valor)] for o in observacoes],
         }
 
-    def csv(self, serie: Serie) -> bytes:
-        with banco.abrir_banco(self.caminho_banco) as conexao:
-            observacoes = banco.listar(conexao, serie.codigo)
+    def csv(self, serie: Indicador) -> bytes:
+        observacoes = self._listar(serie)
         saida = io.StringIO(newline="")
         escritor = csv.writer(saida)
         escritor.writerow(["data", "valor"])
@@ -104,17 +125,20 @@ class Aplicacao:
             self._coletando.release()
 
 
-def _resumo_json(conexao, serie: Serie) -> dict:
-    r = resumo_do_banco(conexao, serie)
+def _resumo_json(r: ResumoSerie, total: int) -> dict:
+    serie = r.serie
+    derivada = isinstance(serie, Derivada)
     dados = {
         "apelido": serie.apelido,
-        "codigo": serie.codigo,
+        "codigo": None if derivada else serie.codigo,
+        "derivada": derivada,
+        "descricao": serie.descricao if derivada else None,
         "nome": serie.nome,
         "unidade": serie.unidade,
         "periodicidade": serie.periodicidade,
         "casas": serie.casas,
         "eh_taxa": serie.eh_taxa,
-        "total": banco.contar(conexao, serie.codigo),
+        "total": total,
         "ultima": None,
     }
     if r.ultima is None:
@@ -136,7 +160,26 @@ def _resumo_json(conexao, serie: Serie) -> dict:
     dados["variacao_12m"] = variacao
     dados["sinal_variacao"] = (r.variacao_12m > 0) - (r.variacao_12m < 0) if variacao else 0
     dados["media_12m"] = numero_br(r.media_12m, serie.casas)
+    dados["detalhe"] = ["Média 12m", dados["media_12m"]]
     return dados
+
+
+def _mes_br(iso: str) -> str:
+    ano, mes, _ = iso.split("-")
+    return f"{MESES[int(mes) - 1]}/{ano[2:]}"
+
+
+def _detalhes_derivados(itens: dict[str, dict]) -> None:
+    """Troca a "média 12m" dos derivados por uma linha que explica de onde vem o número."""
+    ipca12m, juro = itens["ipca12m"], itens["juroreal"]
+    if ipca12m["ultima"]:
+        fim = ipca12m["ultima"]["data"]
+        ano, mes = int(fim[:4]), int(fim[5:7])
+        inicio = f"{ano - 1 if mes < 12 else ano}-{mes % 12 + 1:02d}-01"
+        ipca12m["detalhe"] = ["Janela", f"{_mes_br(inicio)} a {_mes_br(fim)}"]
+    if juro["ultima"] and itens["selic"]["ultima"] and ipca12m["ultima"]:
+        selic = itens["selic"]["ultima"]["valor_br"]
+        juro["detalhe"] = ["Selic ÷ IPCA 12m", f"{selic} ÷ {ipca12m['ultima']['valor_br']}"]
 
 
 def _pagina() -> bytes:
@@ -198,7 +241,10 @@ def criar_servidor(aplicacao: Aplicacao, porta: int = PORTA_PADRAO) -> Threading
             self._json(HTTPStatus.FORBIDDEN, {"erro": "Host não permitido."})
             return False
 
-        def _serie(self, nome: str) -> Serie | None:
+        def _serie(self, nome: str) -> Indicador | None:
+            derivada = buscar_derivada(nome)
+            if derivada is not None:
+                return derivada
             try:
                 return buscar_serie(nome)
             except KeyError as erro:

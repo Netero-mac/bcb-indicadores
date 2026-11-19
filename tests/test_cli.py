@@ -88,6 +88,9 @@ def test_resumo(db, cliente, capsys):
     assert "-0,2851 (-5,28%)" in linhas["Dólar PTAX venda"]
     assert "0,051660" in linhas["CDI diário"]
     assert "0,14" in linhas["IPCA mensal"]
+    # Indicadores derivados aparecem no fim (o fixture só tem 8 meses de IPCA: sem 12m).
+    assert linhas["IPCA 12 meses"].split()[-4:] == ["—"] * 4
+    assert "Juro real" in linhas
 
 
 def test_resumo_com_banco_vazio(db, capsys):

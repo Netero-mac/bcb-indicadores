@@ -15,6 +15,9 @@ os dados em SQLite e mostra relatórios no terminal ou numa interface no navegad
 | Dólar PTAX venda |          1 | `dolar`        | R$      | diária        |
 | CDI diário       |         12 | `cdi`          | % a.d.  | diária        |
 
+Além dessas, o projeto calcula dois **indicadores derivados** a partir das séries gravadas:
+**IPCA acumulado em 12 meses** e **juro real** (Selic descontada do IPCA 12 meses).
+
 **Destaques**
 
 - Coleta **idempotente e incremental**: rodar `coletar` de novo só busca o que é novo e nunca duplica linhas.
@@ -23,7 +26,7 @@ os dados em SQLite e mostra relatórios no terminal ou numa interface no navegad
 - Valores tratados com `Decimal`, sem erros de arredondamento de ponto flutuante.
 - **Interface web local** (`bcb-indicadores web`) com cartões, gráficos interativos e download em CSV.
 - Uma única dependência externa (`requests`); banco com `sqlite3` da biblioteca padrão.
-- **118 testes** com pytest, que rodam **sem internet**, usando respostas reais gravadas da API.
+- **135 testes** com pytest, que rodam **sem internet**, usando respostas reais gravadas da API.
 - CI no GitHub Actions: ruff + pytest no Linux e no Windows a cada push.
 
 ## Instalação
@@ -134,12 +137,14 @@ Data        Valor
 
 ```console
 $ bcb-indicadores resumo
-Série             Unidade  Data          Último           Var. 12m  Média 12m
-----------------  -------  ----------  --------  -----------------  ---------
-Selic meta        % a.a.   19/11/2026     13,75         -1,25 p.p.      14,47
-IPCA mensal       % a.m.   01/10/2026      0,14         +0,05 p.p.       0,38
-Dólar PTAX venda  R$       19/11/2026    5,8889  +0,5543 (+10,39%)     5,2035
-CDI diário        % a.d.   18/11/2026  0,050788     -0,004343 p.p.   0,053285
+Série             Unidade   Data          Último           Var. 12m  Média 12m
+----------------  --------  ----------  --------  -----------------  ---------
+Selic meta        % a.a.    19/11/2026     13,75         -1,25 p.p.      14,47
+IPCA mensal       % a.m.    01/10/2026      0,14         +0,05 p.p.       0,38
+Dólar PTAX venda  R$        19/11/2026    5,8889  +0,5543 (+10,39%)     5,2035
+CDI diário        % a.d.    18/11/2026  0,050788     -0,004343 p.p.   0,053285
+IPCA 12 meses     % em 12m  01/10/2026      4,63         -0,05 p.p.       4,40
+Juro real         % a.a.    19/11/2026      8,72         -1,37 p.p.       9,55
 ```
 
 Como cada coluna é calculada (sempre em relação à data da última observação, D):
@@ -149,6 +154,17 @@ Como cada coluna é calculada (sempre em relação à data da última observaç�
   cair em fim de semana ou feriado, usa o dia útil anterior. Para taxas, a
   diferença é em pontos percentuais (p.p.); para o dólar, em reais e em %.
 - **Média 12m**: média simples das observações no intervalo (D − 12 meses, D].
+
+E os indicadores derivados:
+
+- **IPCA 12 meses**: inflação composta dos 12 últimos meses, ∏(1 + IPCA/100) − 1.
+  É composta, não somada: doze meses de 1% dão 12,68%, não 12%. Se faltar algum
+  mês no meio, a janela não é calculada.
+- **Juro real**: Selic meta descontada do IPCA 12 meses pela equação de Fisher,
+  (1 + Selic/100) / (1 + IPCA12m/100) − 1, mais correta que a subtração simples
+  (13,75% e 4,63% dão 8,72%, não 9,12%). É um juro real *ex-post*: compara a taxa
+  de hoje com a inflação que já aconteceu. No histórico, cada mês usa a Selic
+  vigente no fim do mês; o último ponto usa a Selic mais recente.
 
 ### `exportar`: série para CSV
 
@@ -173,7 +189,7 @@ Pressione Ctrl+C para encerrar.
 
 O navegador abre sozinho com:
 
-- um **cartão por série** com último valor, variação e média de 12 meses (os mesmos números do `resumo`);
+- um **cartão por indicador** (as quatro séries e os dois derivados) com último valor, variação de 12 meses e média ou composição do cálculo (os mesmos números do `resumo`);
 - **gráfico** da série escolhida, com períodos de 1, 5 ou 10 anos ou o histórico todo, e data e valor ao passar o mouse;
 - tabela com as **últimas observações** e botão para **baixar o CSV**;
 - botão **Atualizar dados**, que faz a mesma coisa que o `coletar` (com o banco vazio, baixa o histórico desde 2000).
@@ -194,7 +210,7 @@ bcb-indicadores ultimos: error: argument SÉRIE: Série desconhecida: 'euro'. Op
 ## Testes e qualidade
 
 ```bash
-pytest               # 118 testes, sem acesso à internet
+pytest               # 135 testes, sem acesso à internet
 ruff check .         # lint
 ruff format --check .
 ```
@@ -211,6 +227,8 @@ com `unittest.mock` ou substituído por um cliente falso. Eles cobrem:
   29 de fevereiro, histórico menor que 12 meses, divisão por zero.
 - **Janelas**: cobertura completa do período sem buracos nem sobreposição.
 - **CLI** de ponta a ponta, com banco temporário.
+- **Indicadores derivados**: juros compostos, janela de 12 meses na virada do ano, meses faltando,
+  Selic do fim do mês, ano bissexto e equação de Fisher.
 - **Interface web**: todas as rotas com um servidor real numa porta livre, CSV, coleta pelo botão,
   bloqueio de coletas simultâneas e de requisições de outros sites.
 
@@ -264,7 +282,7 @@ bcb-indicadores/
 │   ├── cliente.py              # cliente da API SGS: HTTP, timeout, retentativas e parse
 │   ├── banco.py                # SQLite: schema, gravação idempotente e consultas
 │   ├── coleta.py               # janelas de 10 anos e coleta incremental
-│   ├── relatorios.py           # cálculos do resumo (funções puras)
+│   ├── relatorios.py           # cálculos do resumo e indicadores derivados (funções puras)
 │   ├── formatacao.py           # números/datas no padrão brasileiro e tabelas
 │   ├── web.py                  # servidor da interface web (http.server)
 │   ├── web_index.html          # página da interface (HTML, CSS e JS sem dependências)
@@ -276,6 +294,7 @@ bcb-indicadores/
 │   ├── test_banco.py
 │   ├── test_coleta.py
 │   ├── test_relatorios.py
+│   ├── test_derivados.py
 │   ├── test_formatacao.py
 │   ├── test_cli.py
 │   └── test_web.py
@@ -285,7 +304,6 @@ bcb-indicadores/
 
 ## Possíveis melhorias
 
-- IPCA acumulado em 12 meses (produto de `1 + taxa/100`), mais útil que a média mensal.
 - Opção `--formato excel` no CSV (ponto e vírgula e vírgula decimal).
 - Exportação para Parquet.
 - Agendamento diário da coleta (cron ou Agendador de Tarefas do Windows).

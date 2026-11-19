@@ -55,7 +55,9 @@ def test_pagina_inicial(url):
 
 def test_resumo_com_banco_vazio(url):
     dados = requests.get(f"{url}/api/resumo", timeout=5).json()
-    assert [s["apelido"] for s in dados["series"]] == ["selic", "ipca", "dolar", "cdi"]
+    assert [s["apelido"] for s in dados["series"]] == [
+        "selic", "cdi", "juroreal", "ipca", "ipca12m", "dolar",
+    ]  # fmt: skip
     assert all(s["ultima"] is None for s in dados["series"])
 
 
@@ -170,3 +172,40 @@ def test_cli_web_porta_ocupada(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(web, "servir", falhar)
     assert main(["--banco", str(tmp_path / "x.db"), "web", "--porta", "8000"]) == 1
     assert "Tente outra porta" in capsys.readouterr().err
+
+
+def gravar_ipca_e_selic(caminho_banco):
+    ipca = [obs(f"2025-{m:02d}-01", "0.5") for m in range(10, 13)]
+    ipca += [obs(f"2026-{m:02d}-01", "0.3") for m in range(1, 11)]
+    with banco.abrir_banco(caminho_banco) as conexao:
+        banco.gravar(conexao, 433, ipca)
+        banco.gravar(conexao, 432, [obs("2026-10-31", "14.00"), obs("2026-11-19", "13.75")])
+
+
+def test_resumo_dos_derivados(url, caminho_banco):
+    gravar_ipca_e_selic(caminho_banco)
+    series = {
+        s["apelido"]: s for s in requests.get(f"{url}/api/resumo", timeout=5).json()["series"]
+    }
+
+    ipca12m = series["ipca12m"]
+    assert ipca12m["derivada"] is True
+    assert ipca12m["descricao"].startswith("Inflação acumulada")
+    assert ipca12m["ultima"]["data_br"] == "01/10/2026"
+    assert ipca12m["detalhe"] == ["Janela", "nov/25 a out/26"]
+
+    juro = series["juroreal"]
+    assert juro["ultima"]["data_br"] == "19/11/2026"
+    assert juro["detalhe"] == ["Selic ÷ IPCA 12m", f"13,75 ÷ {ipca12m['ultima']['valor_br']}"]
+
+    assert series["selic"]["detalhe"] == ["Média 12m", series["selic"]["media_12m"]]
+
+
+def test_observacoes_e_csv_dos_derivados(url, caminho_banco):
+    gravar_ipca_e_selic(caminho_banco)
+    dados = requests.get(f"{url}/api/series/ipca12m", timeout=5).json()
+    assert [d for d, _ in dados["observacoes"]] == ["2026-09-01", "2026-10-01"]
+
+    linhas = requests.get(f"{url}/api/series/juroreal.csv", timeout=5).text.splitlines()
+    assert linhas[0] == "data,valor"
+    assert [linha.split(",")[0] for linha in linhas[1:]] == ["2026-10-01", "2026-11-19"]

@@ -23,7 +23,7 @@ from bcb_indicadores import __version__, banco
 from bcb_indicadores.cliente import ClienteSGS, ErroAPI, parse_data
 from bcb_indicadores.coleta import Cliente, coletar_serie
 from bcb_indicadores.formatacao import TRACO, data_br, numero_br, tabela
-from bcb_indicadores.relatorios import ResumoSerie, resumo_do_banco
+from bcb_indicadores.relatorios import ResumoSerie, resumo_do_banco, resumos_derivados
 from bcb_indicadores.series import SERIES, Serie, buscar_serie
 
 BANCO_PADRAO = "bcb_indicadores.db"
@@ -173,9 +173,10 @@ def cmd_ultimos(args: argparse.Namespace, _cliente: Cliente | None) -> int:
 def cmd_resumo(args: argparse.Namespace, _cliente: Cliente | None) -> int:
     with banco.abrir_banco(args.banco) as conexao:
         resumos = [resumo_do_banco(conexao, serie) for serie in SERIES]
-    if all(r.ultima is None for r in resumos):
-        print("Banco vazio. Rode primeiro: bcb-indicadores coletar", file=sys.stderr)
-        return ERRO
+        if all(r.ultima is None for r in resumos):
+            print("Banco vazio. Rode primeiro: bcb-indicadores coletar", file=sys.stderr)
+            return ERRO
+        resumos += resumos_derivados(conexao)
 
     cabecalho = ["Série", "Unidade", "Data", "Último", "Var. 12m", "Média 12m"]
     print(tabela(cabecalho, [_linha_resumo(r) for r in resumos], direita={3, 4, 5}))

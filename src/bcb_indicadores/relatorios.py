@@ -8,11 +8,20 @@ Definições usadas no resumo (sempre relativas à data da última observação,
 - Média 12m: média aritmética simples das observações com data no intervalo
   (D - 12 meses, D]. Para o IPCA, são os 12 últimos meses; para séries
   diárias, os dias úteis do período.
+
+Indicadores derivados (calculados a partir das séries gravadas):
+- IPCA 12 meses: inflação composta de 12 meses consecutivos,
+  produto de (1 + taxa/100) menos 1. Meses faltando no meio impedem o cálculo.
+- Juro real: Selic meta descontada do IPCA 12 meses pela equação de Fisher,
+  (1 + Selic/100) / (1 + IPCA12m/100) - 1. É um juro real "ex-post": compara a
+  taxa de hoje com a inflação já ocorrida.
 """
 
 from __future__ import annotations
 
 import sqlite3
+from bisect import bisect_right
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
@@ -20,12 +29,12 @@ from decimal import Decimal
 from bcb_indicadores import banco
 from bcb_indicadores.cliente import Observacao
 from bcb_indicadores.datas import somar_anos
-from bcb_indicadores.series import Serie
+from bcb_indicadores.series import DERIVADAS, Derivada, Serie, buscar_serie
 
 
 @dataclass(frozen=True)
 class ResumoSerie:
-    serie: Serie
+    serie: Serie | Derivada
     ultima: Observacao | None = None
     referencia_12m: Observacao | None = None  # valor vigente 12 meses antes
     variacao_12m: Decimal | None = None  # na unidade da série (p.p. ou R$)
@@ -63,7 +72,7 @@ def variacao_percentual(atual: Decimal, anterior: Decimal) -> Decimal | None:
     return (atual / anterior - 1) * 100
 
 
-def resumir(serie: Serie, observacoes: list[Observacao]) -> ResumoSerie:
+def resumir(serie: Serie | Derivada, observacoes: list[Observacao]) -> ResumoSerie:
     """Calcula último valor, variação e média de 12 meses de uma série.
 
     ``observacoes`` deve estar em ordem cronológica (como devolvido por ``banco.listar``).
@@ -102,3 +111,76 @@ def resumo_do_banco(conexao: sqlite3.Connection, serie: Serie) -> ResumoSerie:
     # mesmo em séries mensais ou após feriados prolongados.
     desde = data_de_corte(ultima) - timedelta(days=40)
     return resumir(serie, banco.listar(conexao, serie.codigo, desde=desde))
+
+
+# ---------------------------------------------------------------------------
+# Indicadores derivados
+# ---------------------------------------------------------------------------
+
+
+def acumulado(taxas: Iterable[Decimal]) -> Decimal:
+    """Taxa composta, em %, de uma sequência de taxas em %: [1, 1] -> 2,01."""
+    fator = Decimal(1)
+    for taxa in taxas:
+        fator *= 1 + taxa / 100
+    return (fator - 1) * 100
+
+
+def juro_real(nominal: Decimal, inflacao: Decimal) -> Decimal:
+    """Equação de Fisher, em %: (1 + nominal) / (1 + inflação) - 1."""
+    return ((1 + nominal / 100) / (1 + inflacao / 100) - 1) * 100
+
+
+def _mes(data: date) -> int:
+    return data.year * 12 + data.month - 1
+
+
+def ultimo_dia_do_mes(data: date) -> date:
+    return (data.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+
+
+def ipca_12m(ipca: list[Observacao]) -> list[Observacao]:
+    """IPCA acumulado em 12 meses, um ponto por mês (data do último mês da janela).
+
+    ``ipca`` deve estar em ordem cronológica. Janelas com mês faltando são puladas.
+    """
+    saida = []
+    for fim in range(11, len(ipca)):
+        janela = ipca[fim - 11 : fim + 1]
+        if _mes(janela[-1].data) - _mes(janela[0].data) != 11:
+            continue
+        saida.append(Observacao(janela[-1].data, acumulado(o.valor for o in janela)))
+    return saida
+
+
+def juro_real_mensal(selic: list[Observacao], ipca12m: list[Observacao]) -> list[Observacao]:
+    """Juro real de cada mês: Selic vigente no fim do mês descontada do IPCA 12m daquele mês.
+
+    Se houver Selic mais recente que o último IPCA divulgado, acrescenta um ponto
+    final com a Selic mais recente e o último IPCA 12m (o número "de hoje").
+    """
+    datas = [o.data for o in selic]
+    saida = []
+    for inflacao in ipca12m:
+        i = bisect_right(datas, ultimo_dia_do_mes(inflacao.data)) - 1
+        # Exige uma Selic dentro do próprio mês, para não usar um valor antigo.
+        if i < 0 or selic[i].data < inflacao.data:
+            continue
+        saida.append(Observacao(inflacao.data, juro_real(selic[i].valor, inflacao.valor)))
+
+    if saida and selic[-1].data > ultimo_dia_do_mes(ipca12m[-1].data):
+        saida.append(Observacao(selic[-1].data, juro_real(selic[-1].valor, ipca12m[-1].valor)))
+    return saida
+
+
+def derivadas_do_banco(conexao: sqlite3.Connection) -> dict[str, list[Observacao]]:
+    """Calcula as séries derivadas a partir do banco, indexadas pelo apelido."""
+    ipca = banco.listar(conexao, buscar_serie("ipca").codigo)
+    selic = banco.listar(conexao, buscar_serie("selic").codigo)
+    acumulado_12m = ipca_12m(ipca)
+    return {"ipca12m": acumulado_12m, "juroreal": juro_real_mensal(selic, acumulado_12m)}
+
+
+def resumos_derivados(conexao: sqlite3.Connection) -> list[ResumoSerie]:
+    series = derivadas_do_banco(conexao)
+    return [resumir(d, series[d.apelido]) for d in DERIVADAS]

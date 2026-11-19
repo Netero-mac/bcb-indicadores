@@ -39,3 +39,42 @@ def buscar_serie(identificador: str | int) -> Serie:
             return serie
     opcoes = ", ".join(f"{s.apelido} ({s.codigo})" for s in SERIES)
     raise KeyError(f"Série desconhecida: {identificador!r}. Opções: {opcoes}")
+
+
+@dataclass(frozen=True)
+class Derivada:
+    """Indicador calculado a partir das séries do SGS (não é baixado da API)."""
+
+    apelido: str
+    nome: str
+    unidade: str
+    periodicidade: str
+    casas: int
+    descricao: str
+    eh_taxa: bool = True
+
+
+DERIVADAS: tuple[Derivada, ...] = (
+    Derivada(
+        "ipca12m",
+        "IPCA 12 meses",
+        "% em 12m",
+        "mensal",
+        2,
+        "Inflação acumulada nos 12 últimos meses: produto de (1 + IPCA mensal/100), menos 1.",
+    ),
+    Derivada(
+        "juroreal",
+        "Juro real",
+        "% a.a.",
+        "mensal",
+        2,
+        "Selic meta descontada do IPCA 12 meses (Fisher): (1 + Selic) / (1 + IPCA 12m) - 1. "
+        "Usa a Selic do fim de cada mês; o último ponto usa a Selic mais recente.",
+    ),
+)
+
+
+def buscar_derivada(identificador: str) -> Derivada | None:
+    texto = str(identificador).strip().lower()
+    return next((d for d in DERIVADAS if d.apelido == texto), None)
