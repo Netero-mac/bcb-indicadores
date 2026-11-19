@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bcb-indicadores"
+version = "0.1.0"
+description = "Coleta indicadores econômicos da API SGS do Banco Central, guarda em SQLite e gera relatórios no terminal."
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Netero-mac" }]
+keywords = ["banco central", "sgs", "selic", "ipca", "cdi", "dolar", "sqlite"]
+dependencies = ["requests>=2.31"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[project.scripts]
+bcb-indicadores = "bcb_indicadores.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bcb_indicadores"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle (erros)
+    "W",   # pycodestyle (avisos)
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "PT",  # flake8-pytest-style
+    "RUF", # regras do próprio ruff
+]

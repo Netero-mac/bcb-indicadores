@@ -1,0 +1,29 @@
+# Ambiente virtual
+.venv/
+venv/
+env/
+
+# Bytecode e caches do Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build e distribuição
+build/
+dist/
+*.egg-info/
+
+# Bancos SQLite e exportações geradas localmente
+*.db
+*.sqlite
+*.sqlite3
+*.csv
+
+# Editores e sistema operacional
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
